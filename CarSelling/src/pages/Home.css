@@ -1,0 +1,8 @@
+.hover-expand-home {
+    transition: transform 0.3s ease-in-out;
+}
+
+.hover-expand-home:hover {
+    transform: scale(1.05); /* Slightly increase size on hover */
+    box-shadow: 0px 8px 16px rgba(0, 0, 0, 0.2); /* Optional: Adds depth */
+}
