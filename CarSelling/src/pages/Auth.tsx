@@ -13,13 +13,15 @@ import {
 import {loginUser, registerUser} from "../Api";
 import {personOutline} from "ionicons/icons";
 import './Auth.css';
+import { useHistory } from "react-router-dom";
 
 const Auth : React.FC = () => {
-    const [isLogin, setIsLogin] = useState(true);
+    const [isLoginButton, setIsLoginButton] = useState(true);
 
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [error, setError] = useState("");
+    const history = useHistory();
 
     const [maxWidth, setMaxWidth] = useState("1400px");
 
@@ -34,13 +36,22 @@ const Auth : React.FC = () => {
         return () => mediaQuery.removeEventListener("change", handleChange);
     }, []);
 
+    useEffect(() => {
+        setError("");
+    }, [isLoginButton]);
+
     const handleLogin = async () => {
         try {
             const response = await loginUser(email, password);
-            alert(`Login successful!`);
-            localStorage.setItem("token", response.token); // Save token for authentication
-        } catch (error) {
-            setError("Invalid email or password.");
+            localStorage.setItem("userId", response.userId);
+            localStorage.setItem("token", response.accessToken);
+            window.location.href = "/dashboard";
+        } catch (error: any) {
+            if (error.response && error.response.data && error.response.data.message) {
+                setError(error.response.data.message);
+            } else {
+                setError("An unexpected error occurred.");
+            }
         }
     };
 
@@ -100,10 +111,10 @@ const Auth : React.FC = () => {
                             <IonCol sizeMd="6" className="auth-box">
                                 <IonCard className="auth-card" style={{"--background": isDarkMode ? "#1f1f1f" : "#fff"}}>
                                     <IonCardContent >
-                                        <IonText className="auth-title">{isLogin ? 'LOGIN' : 'REGISTER'}</IonText>
+                                        <IonText className="auth-title">{isLoginButton ? 'LOGIN' : 'REGISTER'}</IonText>
 
-                                        <IonButton expand="full" color="dark" className="social-button">{isLogin ? 'Login' : 'Register'} Google</IonButton>
-                                        <IonButton expand="full" color="dark" className="social-button">{isLogin ? 'Login' : 'Register'} Facebook</IonButton>
+                                        <IonButton expand="full" color="dark" className="social-button">{isLoginButton ? 'Login' : 'Register'} Google</IonButton>
+                                        <IonButton expand="full" color="dark" className="social-button">{isLoginButton ? 'Login' : 'Register'} Facebook</IonButton>
 
                                         <div className="divider-horizontal"></div>
 
@@ -127,15 +138,19 @@ const Auth : React.FC = () => {
                                             color="dark"
                                             className="submit-button"
                                             onClick={handleLogin}>
-                                            {isLogin ? 'LOGIN' : 'REGISTER'}
+                                            {isLoginButton ? 'LOGIN' : 'REGISTER'}
                                         </IonButton>
-
+                                        {error && (
+                                            <IonText color="danger"  style={{ marginTop: "10px", display: "block", textAlign: "center" }}>
+                                                {error}
+                                            </IonText>
+                                        )}
                                         <IonText className="toggle-text">
-                                            {isLogin ? "Don't have an account?" : "Already have an account?"}
+                                            {isLoginButton ? "Don't have an account?" : "Already have an account?"}
                                         </IonText>
 
-                                        <IonButton expand="full" fill="clear" className="toggle-button" onClick={() => setIsLogin(!isLogin)}>
-                                            {isLogin ? 'Register NOW' : 'Login'}
+                                        <IonButton expand="full" fill="clear" className="toggle-button" onClick={() => setIsLoginButton(!isLoginButton)}>
+                                            {isLoginButton ? 'Register NOW' : 'Login'}
                                         </IonButton>
                                     </IonCardContent>
                                 </IonCard>

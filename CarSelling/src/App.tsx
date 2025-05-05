@@ -5,6 +5,7 @@ import Home from './pages/Home';
 import CarSearch from './pages/CarSearch';
 import CarDetail from "./pages/CarDetail";
 import Auth from "./pages/Auth";
+import UserDashboard from './pages/UserDashboard';
 
 /* Core CSS required for Ionic components to work properly */
 import '@ionic/react/css/core.css';
@@ -36,30 +37,40 @@ import '@ionic/react/css/palettes/dark.system.css';
 /* Theme variables */
 import './theme/variables.css';
 
+
+
 setupIonicReact();
 
-const App: React.FC = () => (
-  <IonApp>
-    <IonReactRouter>
-      <IonRouterOutlet>
-        <Route exact path="/home">
-          <Home />
-        </Route>
-        <Route exact path="/car-search">
-          <CarSearch />
-        </Route>
-        <Route exact path="/car-detail">
-          <CarDetail />
-        </Route>
-        <Route exact path="/auth">
-          <Auth />
-        </Route>
-        <Route exact path="/">
-          <Redirect to="/home" />
-        </Route>
-      </IonRouterOutlet>
-    </IonReactRouter>
-  </IonApp>
-);
+const App: React.FC = ()=> {
+  const userId = localStorage.getItem("userId");
+
+  return(
+          <IonApp>
+            <IonReactRouter>
+              <IonRouterOutlet>
+                <Route exact path="/home">
+                  <Home />
+                </Route>
+                <Route exact path="/car-search">
+                  <CarSearch />
+                </Route>
+                <Route exact path="/car-detail">
+                  <CarDetail />
+                </Route>
+                <Route exact path="/auth">
+                  {!userId ? <Auth /> : <Redirect to="/dashboard" />}
+                </Route>
+                <Route exact path="/dashboard">
+                  {userId ? <UserDashboard /> : <Redirect to="/auth" />}
+                </Route>
+                <Route exact path="/">
+                  <Redirect to="/home" />
+                </Route>
+              </IonRouterOutlet>
+            </IonReactRouter>
+          </IonApp>
+      );
+};
+
 
 export default App;
