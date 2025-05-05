@@ -20,6 +20,7 @@ const Auth : React.FC = () => {
 
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
+    const [username, setUsername] = useState("");
     const [error, setError] = useState("");
     const history = useHistory();
 
@@ -37,6 +38,9 @@ const Auth : React.FC = () => {
     }, []);
 
     useEffect(() => {
+        setEmail("");
+        setPassword("");
+        setUsername("");
         setError("");
     }, [isLoginButton]);
 
@@ -51,6 +55,22 @@ const Auth : React.FC = () => {
                 setError(error.response.data.message);
             } else {
                 setError("An unexpected error occurred.");
+            }
+        }
+    };
+
+    const handleRegister = async () => {
+        try {
+            const response = await registerUser(email, password, username || email.split('@')[0]);
+            //alert("Registration successful! You can now log in.");
+            localStorage.setItem("userId", response.userId);
+            localStorage.setItem("token", response.accessToken);
+            window.location.href = "/dashboard";
+        } catch (error: any) {
+            if (error.response?.data?.message) {
+                setError(error.response.data.message);
+            } else {
+                setError("Registration failed. Try again.");
             }
         }
     };
@@ -133,11 +153,22 @@ const Auth : React.FC = () => {
                                             onIonChange={(e) => setPassword(e.detail.value!)}
                                             style={{"--highlight-color-focused": "#4ad493"}} />
 
+                                        {!isLoginButton && (
+                                            <IonInput
+                                                label="USERNAME"
+                                                labelPlacement="floating"
+                                                type="text"
+                                                value={username}
+                                                onIonChange={(e) => setUsername(e.detail.value!)}
+                                                style={{ "--highlight-color-focused": "#4ad493" }}
+                                            />
+                                        )}
+
                                         <IonButton
                                             expand="full"
                                             color="dark"
                                             className="submit-button"
-                                            onClick={handleLogin}>
+                                            onClick={isLoginButton ? handleLogin : handleRegister}>
                                             {isLoginButton ? 'LOGIN' : 'REGISTER'}
                                         </IonButton>
                                         {error && (
