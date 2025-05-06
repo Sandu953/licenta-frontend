@@ -49,6 +49,7 @@ const Auth : React.FC = () => {
             const response = await loginUser(email, password);
             localStorage.setItem("userId", response.userId);
             localStorage.setItem("token", response.accessToken);
+            localStorage.setItem("userName", response.username);
             window.location.href = "/dashboard";
         } catch (error: any) {
             if (error.response && error.response.data && error.response.data.message) {
@@ -61,10 +62,15 @@ const Auth : React.FC = () => {
 
     const handleRegister = async () => {
         try {
+            if(email === "" || password === "" || (!isLoginButton && username === "")) {
+                setError("Please fill in all fields.");
+                return;
+            }
             const response = await registerUser(email, password, username || email.split('@')[0]);
             //alert("Registration successful! You can now log in.");
             localStorage.setItem("userId", response.userId);
             localStorage.setItem("token", response.accessToken);
+            localStorage.setItem("userName", response.username);
             window.location.href = "/dashboard";
         } catch (error: any) {
             if (error.response?.data?.message) {
@@ -108,13 +114,10 @@ const Auth : React.FC = () => {
                             Parked
                         </IonButton>
                         <IonButton routerLink="/" style={{"--color-hover": "#4ad493"}}>
-                            Car Advisor
+                            Recommendations
                         </IonButton>
-                        <IonButton routerLink="/" style={{"--color-hover": "#4ad493"}}>
+                        <IonButton routerLink="/sell-car" style={{"--color-hover": "#4ad493"}}>
                             Sell a Car
-                        </IonButton>
-                        <IonButton routerLink="/" style={{"--color-hover": "#4ad493"}}>
-                            Auctions
                         </IonButton>
                         <IonButton routerLink="/auth" style={{ backgroundColor: "#4ad493", color: "#121212", borderRadius: "50px"}}>
                             <IonIcon slot="icon-only" icon={personOutline}></IonIcon>
@@ -180,7 +183,7 @@ const Auth : React.FC = () => {
                                             {isLoginButton ? "Don't have an account?" : "Already have an account?"}
                                         </IonText>
 
-                                        <IonButton expand="full" fill="clear" className="toggle-button" onClick={() => setIsLoginButton(!isLoginButton)}>
+                                        <IonButton expand="full" fill="clear" className="toggle-button" style = {{ color: "#4ad493"}} onClick={() => setIsLoginButton(!isLoginButton)}>
                                             {isLoginButton ? 'Register NOW' : 'Login'}
                                         </IonButton>
                                     </IonCardContent>
@@ -189,13 +192,22 @@ const Auth : React.FC = () => {
 
                             <IonCol sizeMd="6" className="info-box-normal">
                                 <div className="divider-vertical"></div>
-                                <IonCard className="info-card" style={{"--background": isDarkMode ? "#1f1f1f" : "#fff"}}>
+                                <IonCard className="info-card" style={{"--background": isDarkMode ? "#1f1f1f" : "#fff", padding : "24px"}}>
                                     <IonCardContent>
-                                        <IonText className="info-title">Advantages for login/ register</IonText>
-                                        <ul>
-                                            <li>Parked vehicles available everywhere</li>
-                                            <li>Save searches</li>
-                                            <li>Always get the latest deals</li>
+                                        <IonText className="info-title" style={{
+                                            fontSize: "1.8rem",
+                                            fontWeight: 600,
+                                            marginBottom: "16px",
+                                            display: "block",
+                                            textAlign: "center",
+                                            color: "#4ad493"
+                                        }}>
+                                           Why join our car auctions?
+                                        </IonText>
+                                        <ul style={{ fontSize: "1.2rem", lineHeight: 1.8, paddingLeft: "1.2rem" }}>
+                                            <li style={{ marginBottom: "12px" }}>Parked vehicles available everywhere</li>
+                                            <li style={{ marginBottom: "12px" }}>Personalized car recommendations</li>
+                                            <li style={{ marginBottom: "12px" }}>Always get the latest deals</li>
                                         </ul>
                                     </IonCardContent>
                                 </IonCard>

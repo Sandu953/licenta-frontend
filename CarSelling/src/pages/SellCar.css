@@ -1,0 +1,188 @@
+/* Progress indicator */
+.progress-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 30px;
+    padding: 0 10px;
+}
+
+.progress-step {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    z-index: 1;
+}
+
+.step-circle {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background-color: #333;
+    color: #fff;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-weight: bold;
+    margin-bottom: 8px;
+    border: 2px solid #333;
+}
+
+.step-circle.active {
+    background-color: #4ad493;
+    border-color: #4ad493;
+}
+
+.step-label {
+    font-size: 14px;
+    color: #999;
+}
+
+.progress-line {
+    flex-grow: 1;
+    height: 2px;
+    background-color: #333;
+    margin: 0 10px;
+    margin-bottom: 30px;
+}
+
+/* Button container */
+.button-container {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 30px;
+}
+
+/* Photo upload */
+.photo-upload-container {
+    margin: 20px 0;
+}
+
+.photo-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 15px;
+    margin-top: 15px;
+}
+
+.photo-item {
+    position: relative;
+    height: 150px;
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid #333;
+}
+
+.photo-item img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.remove-photo {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    background: rgba(0, 0, 0, 0.7);
+    border: none;
+    border-radius: 50%;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    color: white;
+}
+
+.add-photo-button {
+    height: 150px;
+    border: 2px dashed #4ad493;
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    color: #4ad493;
+}
+
+.add-photo-button ion-icon {
+    font-size: 32px;
+    margin-bottom: 8px;
+}
+
+/* Features */
+.features-container {
+    margin: 20px 0;
+}
+
+.add-feature {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 15px;
+}
+
+.features-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.feature-chip {
+    background-color: #333;
+    color: white;
+}
+
+/* Toggle items */
+.toggle-item {
+    margin-top: 15px;
+    --background: transparent;
+}
+
+/* Review page */
+.review-section {
+    margin-bottom: 30px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid #333;
+}
+
+.review-section h3 {
+    color: #4ad493;
+    margin-bottom: 15px;
+}
+
+.review-features {
+    margin-top: 10px;
+}
+
+.review-photos {
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+}
+
+.terms-section {
+    margin: 30px 0;
+    background-color: rgba(74, 212, 147, 0.1);
+    border-radius: 8px;
+    padding: 10px;
+}
+
+@media (max-width: 768px) {
+    .button-container {
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .button-container ion-button {
+        width: 100%;
+    }
+
+    .progress-container {
+        overflow-x: auto;
+        padding-bottom: 15px;
+    }
+
+    .step-label {
+        font-size: 12px;
+    }
+}

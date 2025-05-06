@@ -6,6 +6,7 @@ import CarSearch from './pages/CarSearch';
 import CarDetail from "./pages/CarDetail";
 import Auth from "./pages/Auth";
 import UserDashboard from './pages/UserDashboard';
+import SellCar from "./pages/SellCar";
 
 /* Core CSS required for Ionic components to work properly */
 import '@ionic/react/css/core.css';
@@ -62,6 +63,9 @@ const App: React.FC = ()=> {
                 </Route>
                 <Route exact path="/dashboard">
                   {userId ? <UserDashboard /> : <Redirect to="/auth" />}
+                </Route>
+                <Route exact path="/sell-car">
+                  {userId ? <SellCar /> : <Redirect to="/auth" />}
                 </Route>
                 <Route exact path="/">
                   <Redirect to="/home" />

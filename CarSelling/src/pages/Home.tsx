@@ -79,13 +79,10 @@ const HomePage: React.FC = () => {
                             Parked
                         </IonButton>
                         <IonButton routerLink="/" style={{"--color-hover": "#4ad493"}}>
-                            Car Advisor
+                            Recommendations
                         </IonButton>
-                        <IonButton routerLink="/" style={{"--color-hover": "#4ad493"}}>
+                        <IonButton routerLink="/sell-car" style={{"--color-hover": "#4ad493"}}>
                             Sell a Car
-                        </IonButton>
-                        <IonButton routerLink="/" style={{"--color-hover": "#4ad493"}}>
-                            Auctions
                         </IonButton>
                         <IonButton routerLink="/auth" style={{ backgroundColor: "#4ad493", color: "#121212", borderRadius: "50px"}}>
                             <IonIcon slot="icon-only" icon={personOutline}></IonIcon>
