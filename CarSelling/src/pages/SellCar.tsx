@@ -22,11 +22,12 @@ import {
     IonLabel,
     IonItem,
     IonChip,
-    IonToggle,
+    IonToggle, IonText,
 } from "@ionic/react"
 import { personOutline, addCircleOutline, closeCircleOutline, cameraOutline } from "ionicons/icons"
 import { useHistory } from "react-router-dom"
 import "./SellCar.css"
+import axios from "axios";
 
 const SellCar: React.FC = () => {
     const [maxWidth, setMaxWidth] = useState("1400px")
@@ -37,6 +38,27 @@ const SellCar: React.FC = () => {
     const [newFeature, setNewFeature] = useState("")
     const [currentStep, setCurrentStep] = useState(1)
     const history = useHistory()
+    const [vinError, setVinError] = useState("");
+    const [vinConflict, setVinConflict] = useState(false);
+
+    const [brands, setBrands] = useState<string[]>([]);
+    const [models, setModels] = useState<string[]>([]);
+    const [engineSizes, setEngineSizes] = useState<string[]>([]);
+    const [fuelTypes, setFuelTypes] = useState<string[]>([]);
+    const currentYear = new Date().getFullYear();
+    const years = Array.from({ length: currentYear - 1969 }, (_, i) => currentYear - i);
+    const [trims, setTrims] = useState<CarSpec[]>([]);
+
+    interface CarSpec {
+        id: number;
+        make: string;
+        model: string;
+        trim: string;
+        year: string;
+        fuelType: string;
+        engineSize: string;
+        emissions: string;
+    }
 
     // Form state
     const [carDetails, setCarDetails] = useState({
@@ -45,6 +67,7 @@ const SellCar: React.FC = () => {
         year: "",
         mileage: "",
         trim: "",
+        trimId: "",
         price: "",
         fuel: "",
         transmission: "",
@@ -55,7 +78,30 @@ const SellCar: React.FC = () => {
         location: "",
         reservePrice: "",
         title: "",
+        vin: ""
     })
+
+    useEffect(() => {
+        if (currentStep === 4 && carDetails.vin.length === 17) {
+            const token = localStorage.getItem("token");
+            axios
+                .get(`http://localhost:5000/api/car/verifyVinInLiveAuction/${carDetails.vin}`, {
+                    headers: { Authorization: `Bearer ${token}` }
+                })
+                .then(res => {
+                    if (res.status === 200) {
+                        setVinConflict(false);
+                    } else {
+                        setVinConflict(true);
+                    }
+                })
+                .catch(err => {
+                    console.error("VIN validation error:", err);
+                    setVinConflict(true); // be conservative on error
+                });
+        }
+    }, [currentStep, carDetails.vin]);
+
 
     useEffect(() => {
         // Listen for dark mode changes dynamically
@@ -65,6 +111,107 @@ const SellCar: React.FC = () => {
         mediaQuery.addEventListener("change", handleChange)
         return () => mediaQuery.removeEventListener("change", handleChange)
     }, [])
+
+    useEffect(() => {
+        const token = localStorage.getItem("token");
+        axios.get(" http://localhost:5000/api/car/getAllBrands", {
+            headers: {
+                Authorization: `Bearer ${token}` // Replace with real auth token
+            }
+        })
+            .then(response => setBrands(response.data))
+            .catch(error => {
+                console.error("Failed to fetch brands:", error);
+                if (error.response?.status === 401) {
+                    localStorage.clear(); // Clear all saved data
+                    window.location.href = "/auth"; // Redirect to auth page
+                }
+            });
+    }, []);
+
+    useEffect(() => {
+        if (carDetails.brand) {
+            const token = localStorage.getItem("token");
+            axios
+                .get(`http://localhost:5000/api/car/getAllModels/${carDetails.brand}`, {
+                    headers: {
+                        Authorization: `Bearer ${token}`
+                    }
+                })
+                .then(response => {
+                    setModels(response.data); // Adjust if response is wrapped in another field
+                })
+                .catch(error => {
+                    console.error("Failed to fetch models:", error);
+                    setModels([]); // Clear previous models on error
+                });
+        } else {
+            setModels([]); // Clear models if no brand selected
+        }
+    }, [carDetails.brand]);
+
+    useEffect(() => {
+        if (carDetails.brand && carDetails.model) {
+            const token = localStorage.getItem("token");
+            axios
+                .get(`http://localhost:5000/api/car/getAllEngineSize/${carDetails.brand}/${carDetails.model}`, {
+                    headers: {
+                        Authorization: `Bearer ${token}`
+                    }
+                })
+                .then(response => {
+                    setEngineSizes(response.data); // Adjust based on actual response format
+                })
+                .catch(error => {
+                    console.error("Failed to fetch engine sizes:", error);
+                    setEngineSizes([]);
+                });
+        } else {
+            setEngineSizes([]);
+        }
+    }, [carDetails.brand, carDetails.model]);
+
+    useEffect(() => {
+        if (carDetails.brand && carDetails.model && carDetails.engine) {
+            const token = localStorage.getItem("token");
+            axios
+                .get(`http://localhost:5000/api/car/getAllFuelType/${carDetails.brand}/${carDetails.model}/${carDetails.engine}`, {
+                    headers: {
+                        Authorization: `Bearer ${token}`
+                    }
+                })
+                .then(response => {
+                    setFuelTypes(response.data); // assuming it returns something like ["Petrol", "Diesel"]
+                })
+                .catch(error => {
+                    console.error("Failed to fetch fuel types:", error);
+                    setFuelTypes([]);
+                });
+        } else {
+            setFuelTypes([]);
+        }
+    }, [carDetails.brand, carDetails.model, carDetails.engine]);
+
+    useEffect(() => {
+        if (carDetails.brand && carDetails.model && carDetails.engine && carDetails.fuel) {
+            const token = localStorage.getItem("token");
+            axios
+                .get(`http://localhost:5000/api/car/getAllTrims/${carDetails.brand}/${carDetails.model}/${carDetails.engine}/${carDetails.fuel}`, {
+                    headers: {
+                        Authorization: `Bearer ${token}`
+                    }
+                })
+                .then(response => {
+                    setTrims(response.data);
+                })
+                .catch(error => {
+                    console.error("Failed to fetch trims:", error);
+                    setTrims([]);
+                });
+        } else {
+            setTrims([]);
+        }
+    }, [carDetails.brand, carDetails.model, carDetails.engine, carDetails.fuel]);
 
     const updateMaxWidth = () => {
         if (window.innerWidth > 1800) {
@@ -104,19 +251,6 @@ const SellCar: React.FC = () => {
         setImages(newImages)
     }
 
-    const addFeature = () => {
-        if (newFeature.trim() !== "" && !features.includes(newFeature.trim())) {
-            setFeatures([...features, newFeature.trim()])
-            setNewFeature("")
-        }
-    }
-
-    const removeFeature = (index: number) => {
-        const newFeatures = [...features]
-        newFeatures.splice(index, 1)
-        setFeatures(newFeatures)
-    }
-
     const nextStep = () => {
         setCurrentStep(currentStep + 1)
         window.scrollTo(0, 0)
@@ -136,6 +270,48 @@ const SellCar: React.FC = () => {
         history.push("/dashboard")
         setCurrentStep(1) // Reset to the first step
     }
+
+    const isStep1Valid = () => {
+        const requiredFields = [
+            carDetails.title,
+            carDetails.vin,
+            carDetails.brand,
+            carDetails.model,
+            carDetails.year,
+            carDetails.engine,
+            carDetails.fuel,
+            carDetails.trim,
+            carDetails.mileage,
+            carDetails.horsepower,
+            carDetails.bodyType,
+            carDetails.location,
+            carDetails.description
+        ];
+
+        const allFilled = requiredFields.every(field => field !== "");
+        const validVin = carDetails.vin.length === 17;
+
+        return allFilled && validVin;
+    };
+
+    const isStep2Valid = () => images.length >= 4;
+
+    const isStep3Valid = () => {
+        const startPrice = parseFloat(carDetails.price);
+        const reservePrice = parseFloat(carDetails.reservePrice);
+
+        // Basic: starting price is required
+        if (isNaN(startPrice) || startPrice <= 0) return false;
+
+        // If reserve price is filled in, it must be greater than start price
+        if (carDetails.reservePrice.trim() !== "") {
+            return !isNaN(reservePrice) && reservePrice > startPrice;
+        }
+
+        return true; // reserve price is optional
+    };
+
+
 
     return (
         <IonPage>
@@ -214,6 +390,33 @@ const SellCar: React.FC = () => {
                                                 ></IonInput>
                                             </IonItem>
                                         </IonCol>
+                                        <IonCol size="12" sizeMd="6">
+                                            <IonItem>
+                                                <IonInput
+                                                    label = "VIN"
+                                                    labelPlacement="floating"
+                                                    value={carDetails.vin}
+                                                    onIonInput={(e) => {
+                                                        const vin = e.detail.value || "";
+                                                        setCarDetails(prev => ({ ...prev, vin }));
+
+                                                        if (vin.length !== 17) {
+                                                            setVinError("VIN must be exactly 17 characters long");
+                                                        } else {
+                                                            setVinError("");
+                                                        }
+                                                    }}
+                                                    maxlength={17}
+                                                    placeholder="e.g., WBA5A7C5X0F123456"
+                                                    style={{ "--highlight-color-focused": "#4ad493" }}
+                                                ></IonInput>
+                                            </IonItem>
+                                            {vinError && (
+                                                <IonText color="danger" style={{ marginLeft: "16px", fontSize: "14px" }}>
+                                                    {vinError}
+                                                </IonText>
+                                            )}
+                                        </IonCol>
                                     </IonRow>
                                     <IonRow>
                                         <IonCol size="12" sizeMd="6">
@@ -225,13 +428,11 @@ const SellCar: React.FC = () => {
                                                     onIonChange={(e) => handleInputChange(e, "brand")}
                                                     style={{ "--highlight-color-focused": "#4ad493" }}
                                                 >
-                                                    <IonSelectOption value="BMW">BMW</IonSelectOption>
-                                                    <IonSelectOption value="Audi">Audi</IonSelectOption>
-                                                    <IonSelectOption value="Mercedes">Mercedes</IonSelectOption>
-                                                    <IonSelectOption value="Tesla">Tesla</IonSelectOption>
-                                                    <IonSelectOption value="Ford">Ford</IonSelectOption>
-                                                    <IonSelectOption value="Porsche">Porsche</IonSelectOption>
-                                                    <IonSelectOption value="Ferrari">Ferrari</IonSelectOption>
+                                                    {brands.map((brand, index) => (
+                                                        <IonSelectOption key={index} value={brand}>
+                                                            {brand}
+                                                        </IonSelectOption>
+                                                    ))}
                                                 </IonSelect>
                                             </IonItem>
                                         </IonCol>
@@ -244,13 +445,11 @@ const SellCar: React.FC = () => {
                                                     onIonChange={(e) => handleInputChange(e, "model")}
                                                     style={{ "--highlight-color-focused": "#4ad493" }}
                                                 >
-                                                    <IonSelectOption value="BMW">BMW</IonSelectOption>
-                                                    <IonSelectOption value="Audi">Audi</IonSelectOption>
-                                                    <IonSelectOption value="Mercedes">Mercedes</IonSelectOption>
-                                                    <IonSelectOption value="Tesla">Tesla</IonSelectOption>
-                                                    <IonSelectOption value="Ford">Ford</IonSelectOption>
-                                                    <IonSelectOption value="Porsche">Porsche</IonSelectOption>
-                                                    <IonSelectOption value="Ferrari">Ferrari</IonSelectOption>
+                                                    {models.map((model, index) => (
+                                                        <IonSelectOption key={index} value={model}>
+                                                            {model}
+                                                        </IonSelectOption>
+                                                    ))}
                                                 </IonSelect>
                                             </IonItem>
                                         </IonCol>
@@ -258,15 +457,55 @@ const SellCar: React.FC = () => {
                                     <IonRow>
                                         <IonCol size="12" sizeMd="6">
                                             <IonItem>
-                                                <IonInput
+                                                <IonSelect
                                                     label="Year"
                                                     labelPlacement="floating"
-                                                    type="number"
                                                     value={carDetails.year}
                                                     onIonChange={(e) => handleInputChange(e, "year")}
-                                                    placeholder="e.g., 2020"
                                                     style={{ "--highlight-color-focused": "#4ad493" }}
-                                                ></IonInput>
+                                                >
+                                                    {years.map((year) => (
+                                                        <IonSelectOption key={year} value={year.toString()}>
+                                                            {year}
+                                                        </IonSelectOption>
+                                                    ))}
+                                                </IonSelect>
+                                            </IonItem>
+                                        </IonCol>
+                                        <IonCol size="12" sizeMd="6">
+                                            <IonItem>
+                                                <IonSelect
+                                                    label = "Engine Size"
+                                                    labelPlacement="floating"
+                                                    value={carDetails.engine}
+                                                    onIonChange={(e) => handleInputChange(e, "engine")}
+                                                    style={{ "--highlight-color-focused": "#4ad493" }}
+                                                >
+                                                    {engineSizes.map((size, index) => (
+                                                        <IonSelectOption key={index} value={size}>
+                                                            {size} cc
+                                                        </IonSelectOption>
+                                                    ))}
+                                                </IonSelect>
+                                            </IonItem>
+                                        </IonCol>
+                                    </IonRow>
+                                    <IonRow>
+                                        <IonCol size="12" sizeMd="6">
+                                            <IonItem>
+                                                <IonSelect
+                                                    label="Fuel"
+                                                    labelPlacement="floating"
+                                                    value={carDetails.fuel}
+                                                    onIonChange={(e) => handleInputChange(e, "fuel")}
+                                                    style={{ "--highlight-color-focused": "#4ad493" }}
+                                                >
+                                                    {fuelTypes.map((fuel, index) => (
+                                                        <IonSelectOption key={index} value={fuel}>
+                                                            {fuel}
+                                                        </IonSelectOption>
+                                                    ))}
+                                                </IonSelect>
                                             </IonItem>
                                         </IonCol>
                                         <IonCol size="12" sizeMd="6">
@@ -274,14 +513,24 @@ const SellCar: React.FC = () => {
                                                 <IonSelect
                                                     label="Trim"
                                                     labelPlacement="floating"
-                                                    value={carDetails.trim}
-                                                    onIonChange={(e) => handleInputChange(e, "trim")}
+                                                    value={carDetails.trimId}
+                                                    onIonChange={(e) => {
+                                                        const selectedId = e.detail.value.toString();
+                                                        const selectedTrim = trims.find(t => t.id.toString() === selectedId);
+
+                                                        setCarDetails(prev => ({
+                                                            ...prev,
+                                                            trimId: selectedTrim?.id?.toString() ?? "",
+                                                            trim: selectedTrim?.trim ?? ""
+                                                        }));
+                                                    }}
                                                     style={{ "--highlight-color-focused": "#4ad493" }}
                                                 >
-                                                    <IonSelectOption value="Petrol">Petrol</IonSelectOption>
-                                                    <IonSelectOption value="Diesel">Diesel</IonSelectOption>
-                                                    <IonSelectOption value="Electric">Electric</IonSelectOption>
-                                                    <IonSelectOption value="Hybrid">Hybrid</IonSelectOption>
+                                                    {trims.map((spec) => (
+                                                        <IonSelectOption key={spec.id} value={spec.id.toString()}>
+                                                            {spec.trim}
+                                                        </IonSelectOption>
+                                                    ))}
                                                 </IonSelect>
                                             </IonItem>
                                         </IonCol>
@@ -296,37 +545,6 @@ const SellCar: React.FC = () => {
                                                     value={carDetails.mileage}
                                                     onIonChange={(e) => handleInputChange(e, "mileage")}
                                                     placeholder="e.g., 50000"
-                                                    style={{ "--highlight-color-focused": "#4ad493" }}
-                                                ></IonInput>
-                                            </IonItem>
-                                        </IonCol>
-                                        <IonCol size="12" sizeMd="6">
-                                            <IonItem>
-                                                <IonSelect
-                                                    label="Fuel"
-                                                    labelPlacement="floating"
-                                                    value={carDetails.fuel}
-                                                    onIonChange={(e) => handleInputChange(e, "fuel")}
-                                                    style={{ "--highlight-color-focused": "#4ad493" }}
-                                                >
-                                                    <IonSelectOption value="Petrol">Petrol</IonSelectOption>
-                                                    <IonSelectOption value="Diesel">Diesel</IonSelectOption>
-                                                    <IonSelectOption value="Electric">Electric</IonSelectOption>
-                                                    <IonSelectOption value="Hybrid">Hybrid</IonSelectOption>
-                                                </IonSelect>
-                                            </IonItem>
-                                        </IonCol>
-                                    </IonRow>
-                                    <IonRow>
-                                        <IonCol size="12" sizeMd="6">
-                                            <IonItem>
-                                                <IonInput
-                                                    label="Engine Size"
-                                                    labelPlacement="floating"
-                                                    type="number"
-                                                    value={carDetails.engine}
-                                                    onIonChange={(e) => handleInputChange(e, "engine")}
-                                                    placeholder="e.g., 1996"
                                                     style={{ "--highlight-color-focused": "#4ad493" }}
                                                 ></IonInput>
                                             </IonItem>
@@ -380,8 +598,9 @@ const SellCar: React.FC = () => {
                                     <IonRow>
                                         <IonCol size="12">
                                             <IonItem>
-                                                <IonLabel position="floating">Description</IonLabel>
                                                 <IonTextarea
+                                                    label="Description"
+                                                    labelPlacement="floating"
                                                     value={carDetails.description}
                                                     onIonChange={(e) => handleInputChange(e, "description")}
                                                     placeholder="Describe your car in detail. Include condition, history, modifications, etc."
@@ -393,7 +612,7 @@ const SellCar: React.FC = () => {
                                     </IonRow>
                                 </IonGrid>
                                 <div className="button-container">
-                                    <IonButton onClick={nextStep} style={{ "--background": "#4ad493" }}>
+                                    <IonButton onClick={nextStep} disabled={!isStep1Valid()} style={{ "--background": "#4ad493" }}>
                                         Next: Photos
                                     </IonButton>
                                 </div>
@@ -437,6 +656,11 @@ const SellCar: React.FC = () => {
                                         </div>
                                     </div>
                                 </div>
+                                {images.length < 4 && (
+                                    <IonText color="danger" style={{ marginTop: "8px", display: "block" }}>
+                                        Please upload at least 4 photos to continue.
+                                    </IonText>
+                                )}
 
                                 {/*<h3 style={{ marginTop: "30px" }}>Car Features</h3>*/}
                                 {/*<p>Add key features of your car to make it stand out.</p>*/}
@@ -465,10 +689,10 @@ const SellCar: React.FC = () => {
                                 {/*</div>*/}
 
                                 <div className="button-container">
-                                    <IonButton onClick={prevStep} fill="outline">
+                                    <IonButton onClick={prevStep} fill="clear" style={{ "--color": "#4ad493" }}>
                                         Back
                                     </IonButton>
-                                    <IonButton onClick={nextStep} style={{ "--background": "#4ad493" }}>
+                                    <IonButton onClick={nextStep} disabled={!isStep2Valid()} style={{ "--background": "#4ad493" }}>
                                         Next: Auction Settings
                                     </IonButton>
                                 </div>
@@ -512,6 +736,12 @@ const SellCar: React.FC = () => {
                                             </IonItem>
                                         </IonCol>
                                     </IonRow>
+                                    {carDetails.reservePrice.trim() !== "" &&
+                                        parseFloat(carDetails.reservePrice) <= parseFloat(carDetails.price) && (
+                                            <IonText color="danger" style={{ marginLeft: "16px", fontSize: "14px" }}>
+                                                Reserve price must be greater than starting price
+                                            </IonText>
+                                        )}
 
                                 {/*    <IonRow>*/}
                                 {/*        <IonCol size="12">*/}
@@ -538,10 +768,10 @@ const SellCar: React.FC = () => {
                                 </IonGrid>
 
                                 <div className="button-container">
-                                    <IonButton onClick={prevStep} fill="outline">
+                                    <IonButton onClick={prevStep} fill="clear" style={{ "--color": "#4ad493" }}>
                                         Back
                                     </IonButton>
-                                    <IonButton onClick={nextStep} style={{ "--background": "#4ad493" }}>
+                                    <IonButton onClick={nextStep} disabled={!isStep3Valid()} style={{ "--background": "#4ad493" }}>
                                         Next: Review
                                     </IonButton>
                                 </div>
@@ -582,16 +812,19 @@ const SellCar: React.FC = () => {
                                             </IonCol>
                                             <IonCol size="12" sizeMd="6">
                                                 <p>
+                                                    <strong>VIN:</strong> {carDetails.vin || "Not provided"}
+                                                </p>
+                                                <p>
                                                     <strong>Fuel Type:</strong> {carDetails.fuel || "Not provided"}
                                                 </p>
                                                 <p>
-                                                    <strong>Transmission:</strong> {carDetails.transmission || "Not provided"}
+                                                    <strong>Trim:</strong> {carDetails.trim || "Not provided"}
                                                 </p>
                                                 <p>
                                                     <strong>Body Type:</strong> {carDetails.bodyType || "Not provided"}
                                                 </p>
                                                 <p>
-                                                    <strong>Engine:</strong> {carDetails.engine || "Not provided"}
+                                                    <strong>Engine:</strong> {carDetails.engine || "Not provided"} <strong> cc</strong>
                                                 </p>
                                                 <p>
                                                     <strong>Horsepower:</strong>{" "}
@@ -648,23 +881,23 @@ const SellCar: React.FC = () => {
                                     </p>
                                 </div>
 
-                                <div className="terms-section">
-                                    <IonItem lines="none">
-                                        <IonLabel className="ion-text-wrap">
-                                            By submitting this listing, you agree to our Terms of Service and Auction Rules.
-                                        </IonLabel>
-                                        <IonToggle slot="start" checked={true} style={{ "--background-checked": "#4ad493" }}></IonToggle>
-                                    </IonItem>
-                                </div>
+                                {vinConflict && (
+                                <IonText color="danger">
+                                    <p style={{ marginLeft: "16px", fontSize: "14px" }}>
+                                        This VIN is already listed in another live auction.
+                                    </p>
+                                </IonText>
+                            )}
 
                                 <div className="button-container">
-                                    <IonButton onClick={prevStep} fill="outline">
+                                    <IonButton onClick={prevStep} fill="clear" style={{ "--color": "#4ad493" }}>
                                         Back
                                     </IonButton>
-                                    <IonButton onClick={handleSubmit} style={{ "--background": "#4ad493" }}>
+                                    <IonButton onClick={handleSubmit} disabled={vinConflict} style={{ "--background": "#4ad493" }}>
                                         Submit Auction
                                     </IonButton>
                                 </div>
+
                             </IonCardContent>
                         </IonCard>
                     )}

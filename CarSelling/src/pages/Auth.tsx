@@ -50,6 +50,7 @@ const Auth : React.FC = () => {
             localStorage.setItem("userId", response.userId);
             localStorage.setItem("token", response.accessToken);
             localStorage.setItem("userName", response.username);
+            localStorage.setItem("profilePicturePath", response.profilePicturePath);
             window.location.href = "/dashboard";
         } catch (error: any) {
             if (error.response && error.response.data && error.response.data.message) {
@@ -71,6 +72,7 @@ const Auth : React.FC = () => {
             localStorage.setItem("userId", response.userId);
             localStorage.setItem("token", response.accessToken);
             localStorage.setItem("userName", response.username);
+            localStorage.setItem("profilePicturePath", response.profilePicturePath);
             window.location.href = "/dashboard";
         } catch (error: any) {
             if (error.response?.data?.message) {
