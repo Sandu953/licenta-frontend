@@ -40,6 +40,8 @@ const SellCar: React.FC = () => {
     const history = useHistory()
     const [vinError, setVinError] = useState("");
     const [vinConflict, setVinConflict] = useState(false);
+    const [imageFiles, setImageFiles] = useState<File[]>([]);
+
 
     const [brands, setBrands] = useState<string[]>([]);
     const [models, setModels] = useState<string[]>([]);
@@ -240,8 +242,11 @@ const SellCar: React.FC = () => {
 
     const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files) {
-            const newImages = Array.from(e.target.files).map((file) => URL.createObjectURL(file))
-            setImages([...images, ...newImages])
+            const files = Array.from(e.target.files);
+            setImageFiles(prev => [...prev, ...files]); // store the actual files
+
+            const previews = files.map(file => URL.createObjectURL(file));
+            setImages(prev => [...prev, ...previews]); // still use for UI preview
         }
     }
 
@@ -261,14 +266,49 @@ const SellCar: React.FC = () => {
         window.scrollTo(0, 0)
     }
 
-    const handleSubmit = () => {
-        // Here you would typically send the data to your backend
-        console.log("Submitting car details:", { ...carDetails, features, images })
+    const handleSubmit = async () => {
+        const formData = new FormData();
 
-        // For demo purposes, just navigate to dashboard
-        alert("Your car has been submitted for auction!")
-        history.push("/dashboard")
-        setCurrentStep(1) // Reset to the first step
+        // Car details
+        formData.append("title", carDetails.title);
+        formData.append("vin", carDetails.vin);
+        formData.append("brand", carDetails.brand);
+        formData.append("model", carDetails.model);
+        formData.append("year", carDetails.year);
+        formData.append("engine", carDetails.engine);
+        formData.append("fuel", carDetails.fuel);
+        formData.append("trim", carDetails.trim);
+        formData.append("trimId", carDetails.trimId);
+        formData.append("mileage", carDetails.mileage);
+        formData.append("horsepower", carDetails.horsepower);
+        formData.append("bodyType", carDetails.bodyType);
+        formData.append("location", carDetails.location);
+        formData.append("description", carDetails.description);
+
+        // Auction
+        formData.append("price", carDetails.price);
+        formData.append("reservePrice", carDetails.reservePrice === "" ? "0" : carDetails.reservePrice);
+
+
+        // Images — fetch raw files from input, not URLs
+        imageFiles.forEach((file) => {
+            formData.append("images", file); // this will now work
+        });
+
+        try {
+            const token = localStorage.getItem("token");
+            const res = await axios.post("http://localhost:5000/api/car/upload", formData, {
+                headers: {
+                    "Authorization": `Bearer ${token}`,
+                    "Content-Type": "multipart/form-data"
+                }
+            });
+            alert("Your car has been submitted for auction!");
+            history.push("/dashboard");
+        } catch (err) {
+            console.error("Error uploading car:", err);
+            alert("Something went wrong while uploading your car.");
+        }
     }
 
     const isStep1Valid = () => {
@@ -628,7 +668,7 @@ const SellCar: React.FC = () => {
                             </IonCardHeader>
                             <IonCardContent>
                                 <h3>Upload Photos</h3>
-                                <p>High-quality photos increase your chances of selling. Add at least 5 photos.</p>
+                                <p>High-quality photos increase your chances of selling. Add at least 4 photos.</p>
 
                                 <div className="photo-upload-container">
                                     <input
