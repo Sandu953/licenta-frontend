@@ -14,13 +14,71 @@ import {
     IonButtons,
     IonHeader,
     IonToolbar,
-    IonIcon
+    IonIcon, IonCheckbox, IonRadio, IonSpinner, IonAccordion, IonBackButton, IonSelect, IonToggle
 } from '@ionic/react';
 import { personOutline } from 'ionicons/icons';
 import './Home.css';
+import axios from 'axios';
+import { useHistory } from "react-router-dom";
 
 
 const HomePage: React.FC = () => {
+    const [make, setMake] = useState('');
+    const [model, setModel] = useState('');
+    const [yearMin, setYearMin] = useState<number | undefined>();
+    const [hpMin, setHpMin] = useState<number | undefined>();
+    const [engineSizeMin, setEngineSizeMin] = useState<number | undefined>();
+    const [priceMax, setPriceMax] = useState<number | undefined>();
+    const [mileageMax, setMileageMax] = useState<number | undefined>();
+    const [fuel, setFuel] = useState('');
+    const [bodyType, setBodyType] = useState('');
+    const [past, setPast] = useState(false);
+
+    const history = useHistory();
+
+    interface AuctionFilter {
+        make?: string;
+        model?: string;
+        yearMin?: number;
+        yearMax?: number;
+        hpMin?: number;
+        hpMax?: number;
+        engineSizeMin?: number;
+        engineSizeMax?: number;
+        priceMin?: number;
+        priceMax?: number;
+        mileageMin?: number;
+        mileageMax?: number;
+        fuel?: string;
+        bodyType?: string;
+        status?: 'active' | 'inactive';
+        page?: number;
+        cursor?: number;
+        pageSize?: number;
+    }
+
+    const handleSearch = async () => {
+        const filters: AuctionFilter = {
+            make,
+            model,
+            yearMin,
+            hpMin,
+            engineSizeMin,
+            priceMax,
+            mileageMax,
+            fuel,
+            bodyType,
+            status: past ? 'inactive' : 'active',
+            page: 1,
+            pageSize: 10,
+        };
+
+        history.push({
+            pathname: "/car-search",
+            state: filters
+        });
+    };
+
     const [maxWidth, setMaxWidth] = useState("1400px");
 
     const [isDarkMode, setIsDarkMode] = useState(window.matchMedia("(prefers-color-scheme: dark)").matches);
@@ -122,16 +180,19 @@ const HomePage: React.FC = () => {
                             <IonCol size="12" size-md="6">
                                 <h2>Search</h2>
                                 <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-                                    <IonInput placeholder="Search by Model" style={{ height: "50px", padding: "20px" }} />
-                                    <IonInput placeholder="Search by Brand" style={{ height: "50px", padding: "20px" }} />
-                                    <IonInput placeholder="Search by Year" type="number" style={{ height: "50px", padding: "20px" }} />
-                                    <IonInput placeholder="Search by Price" type="number" style={{ height: "50px", padding: "20px" }} />
-                                    <IonInput placeholder="Search by Mileage" type="number" style={{ height: "50px", padding: "20px" }} />
-                                    <IonInput placeholder="Search by Transmission" style={{ height: "50px", padding: "20px" }} />
-                                    <IonInput placeholder="Search by Fuel" style={{ height: "50px", padding: "20px" }} />
-                                    <IonInput placeholder="Search by Body Type" style={{ height: "50px", padding: "20px" }} />
+                                    <IonInput placeholder="Search by Brand" value={make} onIonChange={e => setMake(e.detail.value!)} />
+                                    <IonInput placeholder="Search by Model" value={model} onIonChange={e => setModel(e.detail.value!)} />
+                                    <IonInput placeholder="Search by Year" type="number" value={yearMin} onIonChange={e => setYearMin(parseInt(e.detail.value!, 10))} />
+                                    <IonInput placeholder="Search by HP" type="number" value={hpMin} onIonChange={e => setHpMin(parseInt(e.detail.value!, 10))} />
+                                    <IonInput placeholder="Search by Engine Size" type="number" value={engineSizeMin} onIonChange={e => setEngineSizeMin(parseFloat(e.detail.value!))} />
+                                    <IonInput placeholder="Search by Price" type="number" value={priceMax} onIonChange={e => setPriceMax(parseInt(e.detail.value!, 10))} />
+                                    <IonInput placeholder="Search by Mileage" type="number" value={mileageMax} onIonChange={e => setMileageMax(parseInt(e.detail.value!, 10))} />
+                                    <IonInput placeholder="Search by Fuel" value={fuel} onIonChange={e => setFuel(e.detail.value!)} />
+                                    <IonInput placeholder="Search by Body Type" value={bodyType} onIonChange={e => setBodyType(e.detail.value!)} />
 
-                                    <IonButton routerLink={"/car-search"} expand="block" style={{ marginTop: "20px" }}>SEARCH</IonButton>
+                                    <IonToggle justify={"start"} checked={past} onIonChange={e => setPast(e.detail.checked)}>Get Past Auctions</IonToggle>
+
+                                    <IonButton expand="full" onClick={handleSearch}>Search</IonButton>
                                 </div>
                             </IonCol>
                         </IonRow>

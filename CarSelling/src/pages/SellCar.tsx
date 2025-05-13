@@ -41,6 +41,8 @@ const SellCar: React.FC = () => {
     const [vinError, setVinError] = useState("");
     const [vinConflict, setVinConflict] = useState(false);
     const [imageFiles, setImageFiles] = useState<File[]>([]);
+    const [inputErrors, setInputErrors] = useState<{ [key: string]: string }>({});
+
 
 
     const [brands, setBrands] = useState<string[]>([]);
@@ -234,6 +236,19 @@ const SellCar: React.FC = () => {
     }, [])
 
     const handleInputChange = (e: CustomEvent, field: string) => {
+        let value = e.detail.value;
+
+        // Disallow scientific notation or negatives for numeric fields
+        if (["mileage", "horsepower", "price", "reservePrice"].includes(field)) {
+            if (!/^\d{0,7}$/.test(value)) {
+                // Golește inputul și oprește modificarea stării
+                setCarDetails(prev => ({
+                    ...prev,
+                    [field]: ""
+                }));
+                return;
+            }
+        }
         setCarDetails({
             ...carDetails,
             [field]: e.detail.value,
@@ -304,7 +319,7 @@ const SellCar: React.FC = () => {
                 }
             });
             alert("Your car has been submitted for auction!");
-            history.push("/dashboard");
+            window.location.href = "/dashboard";
         } catch (err) {
             console.error("Error uploading car:", err);
             alert("Something went wrong while uploading your car.");
@@ -582,6 +597,7 @@ const SellCar: React.FC = () => {
                                                     label="Mileage (KM)"
                                                     labelPlacement="floating"
                                                     type="number"
+                                                    min={0}
                                                     value={carDetails.mileage}
                                                     onIonChange={(e) => handleInputChange(e, "mileage")}
                                                     placeholder="e.g., 50000"
@@ -595,6 +611,7 @@ const SellCar: React.FC = () => {
                                                     label="Horsepower"
                                                     labelPlacement="floating"
                                                     type="number"
+                                                    min={0}
                                                     value={carDetails.horsepower}
                                                     onIonChange={(e) => handleInputChange(e, "horsepower")}
                                                     placeholder="e.g., 450"
@@ -755,6 +772,7 @@ const SellCar: React.FC = () => {
                                                     label="Starting Price (EUR)"
                                                     labelPlacement="floating"
                                                     type="number"
+                                                    min={0}
                                                     value={carDetails.price}
                                                     onIonChange={(e) => handleInputChange(e, "price")}
                                                     placeholder="e.g., 45000"
@@ -768,6 +786,7 @@ const SellCar: React.FC = () => {
                                                     label="Reserve Price (EUR, optional)"
                                                     labelPlacement="floating"
                                                     type="number"
+                                                    min={0}
                                                     value={carDetails.reservePrice}
                                                     onIonChange={(e) => handleInputChange(e, "reservePrice")}
                                                     placeholder="Minimum price you'll accept"
