@@ -7,6 +7,8 @@ import CarDetail from "./pages/CarDetail";
 import Auth from "./pages/Auth";
 import UserDashboard from './pages/UserDashboard';
 import SellCar from "./pages/SellCar";
+import CarRecommendations from "./pages/CarRecommendations";
+import CarFavorites from "./pages/CarFavorites";
 
 /* Core CSS required for Ionic components to work properly */
 import '@ionic/react/css/core.css';
@@ -55,7 +57,7 @@ const App: React.FC = ()=> {
                 <Route exact path="/car-search">
                   <CarSearch />
                 </Route>
-                <Route exact path="/car-detail">
+                <Route exact path="/car-detail/:id">
                   <CarDetail />
                 </Route>
                 <Route exact path="/auth">
@@ -66,6 +68,12 @@ const App: React.FC = ()=> {
                 </Route>
                 <Route exact path="/sell-car">
                   {userId ? <SellCar /> : <Redirect to="/auth" />}
+                </Route>
+                <Route exact path="/car-recommendations">
+                  {userId ? <CarRecommendations /> : <Redirect to="/auth" />}
+                </Route>
+                <Route exact path="/car-favorites">
+                  {userId ? <CarFavorites /> : <Redirect to="/auth" />}
                 </Route>
                 <Route exact path="/">
                   <Redirect to="/home" />

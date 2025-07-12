@@ -16,9 +16,20 @@ import {
     IonCardContent,
     IonLabel, IonRouterLink, IonText,
     IonInfiniteScroll,
-    IonInfiniteScrollContent
+    IonInfiniteScrollContent,
+    IonCheckbox,
+    IonRadio,
+    IonSpinner,
+    IonAccordion,
+    IonBackButton,
+    IonSelect,
+    IonToggle,
+    IonTabBar,
+    IonTabButton, IonRouterOutlet,
+    IonTabs, IonFooter
 } from "@ionic/react";
 import { personOutline } from "ionicons/icons";
+import {carSportOutline, cashOutline, homeOutline, sparklesOutline} from 'ionicons/icons';
 import "./CarSearch.css";
 import { useLocation } from "react-router-dom";
 import axios from 'axios';
@@ -36,7 +47,29 @@ const CarSearch: React.FC = () => {
 
     const [isDarkMode, setIsDarkMode] = useState(window.matchMedia("(prefers-color-scheme: dark)").matches);
 
+    const [favoriteAuctionIds, setFavoriteAuctionIds] = useState<number[]>([]);
+    const userId = parseInt(localStorage.getItem("userId") || "0");
+
+    const isLoggedIn = userId > 0;
+
+
     const hasMountedRef = useRef(false);
+
+    function useIsMobile(breakpoint = 550) {
+        const [isMobile, setIsMobile] = useState(window.innerWidth < breakpoint);
+
+        useEffect(() => {
+            const handleResize = () => setIsMobile(window.innerWidth < breakpoint);
+            window.addEventListener('resize', handleResize);
+            return () => window.removeEventListener('resize', handleResize);
+        }, [breakpoint]);
+
+        return isMobile;
+    }
+
+    const isMobile = useIsMobile();
+
+    const locationToolbar = useLocation();
 
     interface AuctionPreview {
         id : number;
@@ -75,7 +108,31 @@ const CarSearch: React.FC = () => {
         pageSize?: number;
     }
 
-    const loadMoreCars = async () => {
+    useEffect(() => {
+        const fetchFavorites = async () => {
+            try {
+                const res = await axios.get<number[]>(`http://localhost:5000/api/favorites/list/${userId}`);
+                setFavoriteAuctionIds(res.data); // assuming res.data is a list of auctionIds
+                return res.data;
+            } catch (err) {
+                console.error("Failed to load favorites", err);
+            }
+        };
+
+        const init = async () => {
+            const favorites = await fetchFavorites(); // get actual data
+            await loadMoreCars(favorites);           // pass it explicitly
+        };
+
+
+        if (!hasMountedRef.current) {
+            hasMountedRef.current = true;
+            init();
+        }
+    }, []);
+
+
+    const loadMoreCars = async (favorites: number[] = favoriteAuctionIds) => {
         if (loading || !hasMore) return;
         setLoading(true);
 
@@ -86,16 +143,21 @@ const CarSearch: React.FC = () => {
             pageSize: 10
         });
 
-        setCars(prev => [...prev, ...response]);
-        setHasMore(response.length === 10); // dacă mai sunt 10, înseamnă că s-ar putea să mai urmeze
+        const enriched = response.map(auction => ({
+            ...auction,
+            isFavorite: favorites.includes(auction.id)
+        }));
 
+        setCars(prev => [...prev, ...enriched]);
+        setHasMore(response.length === 10);
         setLoading(false);
     };
+
 
     useEffect(() => {
         if (!hasMountedRef.current) {
             hasMountedRef.current = true;
-            loadMoreCars();
+            //loadMoreCars();
         }
     }, []);
 
@@ -144,16 +206,41 @@ const CarSearch: React.FC = () => {
     };
 
 
-    // useEffect(() => {
-    //     if (!filters) return;
-    //
-    //     const loadAuctions = async () => {
-    //         const data = await fetchAuctions(filters);
-    //         setCars(data);
-    //     };
-    //
-    //     loadAuctions();
-    // }, [filters]);
+    const fetchFavorites = async (): Promise<number[]> => {
+        try {
+            const res = await axios.get<number[]>(`http://localhost:5000/api/favorites/list/${userId}`);
+            setFavoriteAuctionIds(res.data);
+            return res.data;
+        } catch (err) {
+            console.error("Failed to load favorites", err);
+            return [];
+        }
+    };
+
+
+    const toggleFavorite = async (auctionId: number, currentState: boolean) => {
+        try {
+            if (currentState) {
+                await axios.delete(`http://localhost:5000/api/favorites/remove`, {
+                    data: { userId, auctionId }
+                });
+            } else {
+                await axios.post(`http://localhost:5000/api/favorites/add`, { userId, auctionId });
+            }
+
+            const updatedFavorites = await fetchFavorites();
+
+            setCars(prev =>
+                prev.map(car => ({
+                    ...car,
+                    isFavorite: updatedFavorites.includes(car.id)
+                }))
+            );
+        } catch (err) {
+            console.error("Favorite toggle failed:", err);
+        }
+    };
+
 
 
     useEffect(() => {
@@ -183,262 +270,198 @@ const CarSearch: React.FC = () => {
         return () => window.removeEventListener("resize", updateMaxWidth);
     }, []);
 
-
-
-
-    const carListings = [
-        { id: 1, brand: "BMW", model: "5 Series", price: "45,000", year: 2020, km: "123,456 KM", fuel: "Petrol", src: "/car1.jpg", parked: true },
-        { id: 2, brand: "Audi", model: "A6", price: "42,000", year: 2019, km: "98,000 KM", fuel: "Diesel", src: "/car2.jpg", parked: false },
-        { id: 3, brand: "Mercedes", model: "C-Class", price: "50,000", year: 2021, km: "75,000 KM", fuel: "Hybrid", src: "/car3.jpg", parked: false },
-        { id: 4, brand: "Tesla", model: "Model 3", price: "20,000", year: 2021, km: "100,000 KM", fuel: "Electric", src: "/car4.jpg", parked: false },
-        { id: 5, brand: "Ford", model: "Mustang", price: "60,000", year: 2020, km: "7,000 KM", fuel: "Petrol", src: "/car5.jpg", parked: false },
-        { id: 6, brand: "Porsche", model: "911", price: "100,000", year: 2024, km: "5,000 KM", fuel: "Hybrid", src: "/car6.jpg", parked: false },
-        { id: 7, brand: "Ferrari", model: "812", price: "500,000", year: 2023, km: "2,000 KM", fuel: "Petrol", src: "/car7.jpg", parked: false },
-        { id: 8, brand: "Audi", model: "R8", price: "120,000", year: 2021, km: "7,000 KM", fuel: "Petrol", src: "/car8.jpg", parked: false },
-    ];
-
-    // State to track parked cars
-    //const [cars, setCars] = useState(carListings);
-
-    // Function to toggle parked state
-    // const togglePark = (id: number) => {
-    //     setCars((prevCars) =>
-    //         prevCars.map((car) =>
-    //             car.id === id ? { ...car, parked: !car.parked } : car
-    //         )
-    //     );
-    // };
-
     return (
         <IonPage>
-            {/* Navigation Bar */}
-            <IonHeader style={{ paddingTop : "1.5px" }}>
-                <IonToolbar style={{ maxWidth, margin: "0 auto", "--background": isDarkMode ? "#121212" : "#fff" }}>
-                    <IonButtons slot="start">
-                        <IonButton routerLink="/" fill="clear" style={{"--color-hover": "#4ad493"}}>
-                            {/*<IonTitle>LOGO</IonTitle>*/}
-                            <img src="/logo-placeholder.png" alt="Logo" style={{ height: "40px" }} />
-                        </IonButton>
-                    </IonButtons>
-                    <IonButtons slot="primary" style={{ display: "flex", gap: "15px" }}>
-                        <IonButton routerLink="/" style={{"--color-hover": "#4ad493"}}>
-                            Parked
-                        </IonButton>
-                        <IonButton routerLink="/" style={{"--color-hover": "#4ad493"}}>
-                            Recommendations
-                        </IonButton>
-                        <IonButton routerLink="/" style={{"--color-hover": "#4ad493"}}>
-                            Sell a Car
-                        </IonButton>
-                        <IonButton routerLink="/auth" style={{ backgroundColor: "#4ad493", color: "#121212", borderRadius: "50px"}}>
-                            <IonIcon slot="icon-only" icon={personOutline}></IonIcon>
-                        </IonButton>
-                    </IonButtons>
-                </IonToolbar>
-            </IonHeader>
+            {!isMobile && (
+                <IonHeader style={{ paddingTop : "1.5px" }}>
+                    <IonToolbar style={{ maxWidth, margin: "0 auto", "--background": isDarkMode ? "#121212" : "#fff" }}>
+                        <IonButtons slot="start">
+                            <IonButton routerLink="/" fill="clear" style={{"--color-hover": "#4ad493"}}>
+                                {/*<IonTitle>LOGO</IonTitle>*/}
+                                <img src="/logo-placeholder.png" alt="Logo" style={{ height: "40px" }} />
+                            </IonButton>
+                        </IonButtons>
+                        <IonButtons slot="primary" style={{ display: "flex", gap: "15px" }}>
+                            <IonButton routerLink="/car-favorites" style={{"--color-hover": "#4ad493"}}>
+                                Parked
+                            </IonButton>
+                            <IonButton routerLink="/car-recommendations" style={{"--color-hover": "#4ad493"}}>
+                                Recommendations
+                            </IonButton>
+                            <IonButton routerLink="/sell-car" style={{"--color-hover": "#4ad493"}}>
+                                Sell a Car
+                            </IonButton>
+                            <IonButton routerLink="/auth" style={{ backgroundColor: "#4ad493", color: "#121212", borderRadius: "50px"}}>
+                                <IonIcon slot="icon-only" icon={personOutline}></IonIcon>
+                            </IonButton>
+                        </IonButtons>
+                    </IonToolbar>
+                </IonHeader>
+            )}
 
-            {/* Search Filters */}
             <IonContent fullscreen>
                 <div style={{maxWidth, margin: "0 auto", padding: "16px" }}>
                     <IonGrid>
-                        <IonRow>
-                            <IonCol size="12" size-md="3">
-                                <IonInput placeholder="Search by Model"  />
-                            </IonCol>
-                            <IonCol size="12" size-md="3">
-                                <IonInput placeholder="Search by Brand"  />
-                            </IonCol>
-                            <IonCol size="12" size-md="3">
-                                <IonInput placeholder="Search by Year" type="number"/>
-                            </IonCol>
-                            <IonCol size="12" size-md="3">
-                                <IonButton expand="block">More Advanced Filters</IonButton>
-                            </IonCol>
-                        </IonRow>
-                    </IonGrid>
-                    <IonGrid>
-                        {/*{cars.map((car) => (*/}
-                        {/*    <IonRouterLink routerLink="/car-detail">*/}
-                        {/*        <IonCard className="hover-expand-search" key={car.id} style={{ display: "flex", "--flex-direction": "row" ,padding: "12px", minHeight: "200px" }}>*/}
-                        {/*            /!* Wrap the Image and Title in a Link *!/*/}
-                        {/*            <img*/}
-                        {/*                src={car.src}*/}
-                        {/*                alt={`${car.brand} ${car.model}`}*/}
-                        {/*                style={{ width: "325px", height: "195px", objectFit: "cover"}}*/}
-                        {/*            />*/}
-                        {/*            <IonCardContent>*/}
-                        {/*                <IonLabel style={{ flexGrow: 1 }}>*/}
-                        {/*                    <h1>{car.brand}, {car.model}</h1>*/}
-                        {/*                    <p>{car.km} | {car.fuel} | {car.year}</p>*/}
-                        {/*                </IonLabel>*/}
-                        {/*                <IonButton*/}
-                        {/*                    fill="clear"*/}
-                        {/*                    onClick={(e) => {*/}
-                        {/*                        e.preventDefault();  // Prevents the default navigation behavior*/}
-                        {/*                        e.stopPropagation(); // Prevent navigation*/}
-                        {/*                        // Place your custom functionality here*/}
-                        {/*                        console.log("Private Seller button clicked");*/}
-                        {/*                    }}*/}
-                        {/*                    style={{*/}
-                        {/*                    position: "absolute",*/}
-                        {/*                    bottom: "10px",*/}
-                        {/*                    left: "10px"*/}
-                        {/*                }}>*/}
-                        {/*                    <IonIcon icon={personOutline} />*/}
-                        {/*                    Private Seller*/}
-                        {/*                </IonButton>*/}
-                        {/*            </IonCardContent>*/}
-
-                        {/*            <span style={{*/}
-                        {/*                position: "absolute",*/}
-                        {/*                top: "20px",*/}
-                        {/*                right: "20px",*/}
-                        {/*                fontSize: "1.32rem",*/}
-                        {/*                fontWeight: "bold",*/}
-                        {/*                backgroundColor: "#4ad493",*/}
-                        {/*                color: "#121212",*/}
-                        {/*                padding: "5px 10px",*/}
-                        {/*                borderRadius: "8px"*/}
-                        {/*            }}*/}
-                        {/*            >*/}
-                        {/*            {car.price} EUR*/}
-                        {/*        </span>*/}
-
-                        {/*            <IonButton*/}
-                        {/*                fill="clear"*/}
-                        {/*                onClick={(e) => {*/}
-                        {/*                    e.preventDefault();  // Prevents the default navigation behavior*/}
-                        {/*                    e.stopPropagation(); // Prevents click from navigating*/}
-                        {/*                    togglePark(car.id);*/}
-                        {/*                }}*/}
-                        {/*                style={{*/}
-                        {/*                    position: "absolute",*/}
-                        {/*                    bottom: "10px",*/}
-                        {/*                    right: "20px",*/}
-                        {/*                    width: "60px",*/}
-                        {/*                    height: "60px",*/}
-                        {/*                    display: "flex",*/}
-                        {/*                    justifyContent: "center",*/}
-                        {/*                    alignItems: "center",*/}
-                        {/*                    padding: "1px",*/}
-                        {/*                    overflow: "hidden", // Prevents unwanted shifts*/}
-                        {/*                    "--border-radius": "50%",*/}
-                        {/*                    "--background": car.parked ? "#4ad493" : "default",*/}
-                        {/*                    "--color": car.parked ? "#121212" : "#1f1f1f",*/}
-
-                        {/*                }}*/}
-                        {/*            >*/}
-                        {/*                <IonIcon*/}
-                        {/*                    slot="icon-only"*/}
-                        {/*                    src = {"/park-icon-dark.svg"}*/}
-                        {/*                    style={{*/}
-                        {/*                        width: "41px",*/}
-                        {/*                        height: "41px",*/}
-                        {/*                        marginLeft: "3.5px", // Adjust left/right margin manually if needed*/}
-                        {/*                        marginTop: "2px", // Adjust top/bottom margin manually if needed*/}
-                        {/*                    }}*/}
-                        {/*                >*/}
-                        {/*                </IonIcon>*/}
-                        {/*            </IonButton>*/}
-                        {/*        </IonCard>*/}
-
-                        {/*    </IonRouterLink>*/}
-
-                        {/*))}*/}
                         {cars.map((car, idx) => (
-                        <IonRouterLink key={idx} routerLink="/car-detail">
-                            <IonCard className="hover-expand-search" style={{ display: "flex", "--flex-direction": "row", padding: "12px", minHeight: "200px" }}>
-                                <img
-                                    src={`http://localhost:5000${car.imageUrl}`}
-                                    alt={car.title}
-                                    style={{ width: "325px", height: "195px", objectFit: "cover" }}
-                                />
-                                <IonCardContent>
-                                    <IonLabel>
-                                        <h1>{car.title}</h1>
-                                        <p>{car.make} {car.model}</p>
-                                        <p>{car.mileage} km • {car.year} • {car.location}</p>
-                                    </IonLabel>
-                                    <div
-                                        style={{
-                                            position: "absolute",
-                                            bottom: "20px",
-                                            left: "20px",
-                                            display: "flex",
-                                            alignItems: "center",
-                                            gap: "10px"  // space between image and username
-                                        }}
-                                    >
-                                        <img
-                                            src={`http://localhost:5000${car.ownerPfp}`}
-                                            alt="Profile"
-                                            style={{
-                                                width: "45px",
-                                                height: "45px",
-                                                borderRadius: "50%",
-                                                objectFit: "cover",
-                                                border: "2px solid #4ad493"
-                                            }}
-                                        />
-                                        <span style={{ fontSize: "1.4rem", fontWeight: 500 }}>
-                                            {car.ownerUserName}
-                                        </span>
-
-                                    </div>
-
-
-                                </IonCardContent>
-
-                                {/*<span style={{*/}
-                                {/*    position: "absolute",*/}
-                                {/*    top: "20px",*/}
-                                {/*    right: "20px",*/}
-                                {/*    fontSize: "1.32rem",*/}
-                                {/*    fontWeight: "bold",*/}
-                                {/*    backgroundColor: "#4ad493",*/}
-                                {/*    color: "#121212",*/}
-                                {/*    padding: "5px 10px",*/}
-                                {/*    borderRadius: "8px"*/}
-                                {/*}}>*/}
-                                {/*    {car.currentBid} EURO*/}
-                                {/*</span>*/}
-                                {/*<CountdownTimer startTime={car.startTime} />*/}
-                                <div
+                            <IonRouterLink key={idx} routerLink={`/car-detail/${car.id}`}>
+                                <IonCard
+                                    className="hover-expand-search"
                                     style={{
-                                        position: "absolute",
-                                        top: "20px",
-                                        right: "20px",
-                                        backgroundColor: "#4ad493",
-                                        color: "#121212",
-                                        display: "flex",
-                                        alignItems: "center",
-                                        padding: "6px 12px",
-                                        borderRadius: "9999px", // pill shape
-                                        fontSize: "0.95rem",
-                                        fontWeight: 600,
-                                        gap: "10px"
+                                        display: 'flex',
+                                        flexDirection: isMobile ? 'column' : 'row',
+                                        position: 'relative',
+                                        padding: '12px',
+                                        minHeight: isMobile ? 'auto' : '200px',
                                     }}
                                 >
-                                    {/* Timer Icon */}
-                                    <span style={{ display: "flex", alignItems: "center", fontSize: "1rem" }}>
-                                        ⏱
-                                    </span>
+                                    {/* Imagine */}
+                                    <img
+                                        src={`http://localhost:5000${car.imageUrl}`}
+                                        alt={car.title}
+                                        style={{
+                                            width: isMobile ? '100%' : '325px',
+                                            height: '195px',
+                                            objectFit: 'cover',
+                                            borderRadius: '8px',
+                                        }}
+                                    />
 
-                                    {/* Countdown */}
-                                    <span>
-                                        <CountdownTimer startTime={car.startTime} />
-                                    </span>
+                                    {/* Conținut */}
+                                    <IonCardContent style={{ flex: 1, position: 'relative' }}>
 
-                                    {/* Bid Label */}
-                                    <span style={{ opacity: 0.8 }}>Bid</span>
+                                        {/* Informații + Favorite (pe mobil) */}
+                                        <div
+                                            style={{
+                                                display: 'flex',
+                                                justifyContent: 'space-between',
+                                                alignItems: isMobile ? 'flex-start' : 'center',
+                                                gap: '10px',
+                                                flexWrap: 'wrap',
+                                            }}
+                                        >
+                                            <IonLabel style={{ flex: 1 }}>
+                                                <h1>{car.title}</h1>
+                                                <p>{car.make} {car.model}</p>
+                                                <p>{car.mileage} km • {car.year} • {car.location}</p>
+                                            </IonLabel>
 
-                                    <span style={{ fontWeight: 700 }}>
-                                        €{Intl.NumberFormat("en-US").format(car.currentBid)}
-                                    </span>
-                                </div>
-                            </IonCard>
-                        </IonRouterLink>
+                                            {/* Favorite pe mobil (în dreapta titlului) */}
+                                            {isMobile && (
+                                                <IonButton
+                                                    fill="clear"
+                                                    disabled={!isLoggedIn}
+                                                    onClick={(e) => {
+                                                        e.preventDefault();
+                                                        e.stopPropagation();
+                                                        if (!isLoggedIn) return;
+                                                        toggleFavorite(car.id, car.isFavorite);
+                                                    }}
+                                                    style={{
+                                                        width: '48px',
+                                                        height: '48px',
+                                                        "--border-radius": "50%",
+                                                        "--background": car.isFavorite ? "#4ad493" : "transparent",
+                                                        "--color": car.isFavorite ? "#121212" : "#1f1f1f",
+                                                        opacity: isLoggedIn ? 1 : 0.4,
+                                                    }}
+                                                >
+                                                    <IonIcon
+                                                        slot="icon-only"
+                                                        src="/park-icon-dark.svg"
+                                                        style={{ width: '26px', height: '26px' }}
+                                                    />
+                                                </IonButton>
+                                            )}
+                                        </div>
+
+                                        {/* Owner */}
+                                        <div
+                                            style={{
+                                                position: isMobile ? 'static' : 'absolute',
+                                                bottom: isMobile ? 'auto' : '20px',
+                                                left: isMobile ? 'auto' : '20px',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                gap: '10px',
+                                                marginTop: isMobile ? '12px' : 0,
+                                            }}
+                                        >
+                                            <img
+                                                src={`http://localhost:5000${car.ownerPfp}`}
+                                                alt="Profile"
+                                                style={{
+                                                    width: '45px',
+                                                    height: '45px',
+                                                    borderRadius: '50%',
+                                                    objectFit: 'cover',
+                                                    border: '2px solid #4ad493',
+                                                }}
+                                            />
+                                            <span style={{ fontSize: '1.4rem', fontWeight: 500 }}>{car.ownerUserName}</span>
+                                        </div>
+
+                                        {/* Timer + Bid */}
+                                        <div
+                                            style={{
+                                                position: isMobile ? 'static' : 'absolute',
+                                                top: isMobile ? undefined : '20px',
+                                                right: isMobile ? undefined : '20px',
+                                                backgroundColor: '#4ad493',
+                                                color: '#121212',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                padding: '6px 12px',
+                                                borderRadius: '9999px',
+                                                fontSize: '0.95rem',
+                                                fontWeight: 600,
+                                                gap: '10px',
+                                                marginTop: isMobile ? '12px' : 0,
+                                                alignSelf: isMobile ? 'flex-start' : undefined,
+                                            }}
+                                        >
+                                            <span style={{ display: 'flex', alignItems: 'center', fontSize: '1rem' }}>⏱</span>
+                                            <span><CountdownTimer startTime={car.startTime} /></span>
+                                            <span style={{ opacity: 0.8 }}>Bid</span>
+                                            <span style={{ fontWeight: 700 }}>
+                                                €{Intl.NumberFormat('en-US').format(car.currentBid)}
+                                            </span>
+                                        </div>
+                                    </IonCardContent>
+
+                                    {/* Favorite pe desktop (în colț) */}
+                                    {!isMobile && (
+                                        <IonButton
+                                            fill="clear"
+                                            disabled={!isLoggedIn}
+                                            onClick={(e) => {
+                                                e.preventDefault();
+                                                e.stopPropagation();
+                                                if (!isLoggedIn) return;
+                                                toggleFavorite(car.id, car.isFavorite);
+                                            }}
+                                            style={{
+                                                position: 'absolute',
+                                                top: '100px',
+                                                right: '30px',
+                                                width: '60px',
+                                                height: '60px',
+                                                "--border-radius": "50%",
+                                                "--background": car.isFavorite ? "#4ad493" : "transparent",
+                                                "--color": car.isFavorite ? "#121212" : "#1f1f1f",
+                                                opacity: isLoggedIn ? 1 : 0.4,
+                                            }}
+                                        >
+                                            <IonIcon
+                                                slot="icon-only"
+                                                src="/park-icon-dark.svg"
+                                                style={{ width: '41px', height: '41px', marginLeft: '3.5px', marginTop: '2px' }}
+                                            />
+                                        </IonButton>
+                                    )}
+                                </IonCard>
+                            </IonRouterLink>
                         ))}
+
                     </IonGrid>
                 </div>
                 <IonInfiniteScroll threshold="100px" onIonInfinite={async (ev) => {
@@ -448,6 +471,66 @@ const CarSearch: React.FC = () => {
                     <IonInfiniteScrollContent loadingSpinner="bubbles" loadingText="Loading more cars..." />
                 </IonInfiniteScroll>
             </IonContent>
+            {isMobile && (
+                <IonFooter className="ion-hide-md-up">
+                    <IonToolbar
+                        style={{
+                            '--background': 'var(--ion-background-color)',
+                            paddingBottom: 'env(safe-area-inset-bottom)',
+                        }}
+                    >
+                        <IonButtons
+                            slot="start"
+                            style={{
+                                width: '100%',
+                                justifyContent: 'space-around',
+                            }}
+                        >
+                            {[
+                                { href: '/home', icon: homeOutline, label: 'Home' },
+                                { href: '/car-favorites', icon: carSportOutline, label: 'Parked' },
+                                { href: '/car-recommendations', icon: sparklesOutline, label: 'AI' },
+                                { href: '/sell-car', icon: cashOutline, label: 'Sell' },
+                                { href: '/auth', icon: personOutline, label: 'Account' },
+                            ].map(({ href, icon, label }) => {
+                                const isActive = locationToolbar.pathname === href;
+                                return (
+                                    <IonButton
+                                        key={href}
+                                        fill="clear"
+                                        routerLink={href}
+                                        style={{
+                                            minWidth: '50px',
+                                            color: isActive ? '#4ad493' : 'var(--ion-color-medium)',
+                                        }}
+                                    >
+                                        <div
+                                            style={{
+                                                display: 'flex',
+                                                flexDirection: 'column',
+                                                alignItems: 'center',
+                                            }}
+                                        >
+                                            <IonIcon icon={icon} />
+                                            <span
+                                                style={{
+                                                    fontSize: '0.7rem',
+                                                    marginTop: '2px',
+                                                    lineHeight: 1,
+                                                    color: 'inherit',
+                                                }}
+                                            >
+                                            {label}
+                                            </span>
+                                        </div>
+                                    </IonButton>
+                                );
+                            })}
+                        </IonButtons>
+                    </IonToolbar>
+                </IonFooter>
+            )}
+
         </IonPage>
     );
 };

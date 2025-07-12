@@ -8,12 +8,22 @@ import {
     IonCol,
     IonText, IonPage, IonToolbar, IonButtons, IonIcon, IonHeader,
     IonCardContent,
-    IonCard
+    IonCard,
+    IonCheckbox,
+    IonRadio,
+    IonSpinner,
+    IonAccordion,
+    IonBackButton,
+    IonSelect,
+    IonToggle,
+    IonTabBar,
+    IonTabButton, IonRouterOutlet,
+    IonTabs, IonFooter
 } from '@ionic/react';
 import {loginUser, registerUser} from "../Api";
-import {personOutline} from "ionicons/icons";
+import {carSportOutline, cashOutline, homeOutline, personOutline, sparklesOutline} from "ionicons/icons";
 import './Auth.css';
-import { useHistory } from "react-router-dom";
+import {useHistory, useLocation} from "react-router-dom";
 
 const Auth : React.FC = () => {
     const [isLoginButton, setIsLoginButton] = useState(true);
@@ -27,6 +37,22 @@ const Auth : React.FC = () => {
     const [maxWidth, setMaxWidth] = useState("1400px");
 
     const [isDarkMode, setIsDarkMode] = useState(window.matchMedia("(prefers-color-scheme: dark)").matches);
+
+    function useIsMobile(breakpoint = 550) {
+        const [isMobile, setIsMobile] = useState(window.innerWidth < breakpoint);
+
+        useEffect(() => {
+            const handleResize = () => setIsMobile(window.innerWidth < breakpoint);
+            window.addEventListener('resize', handleResize);
+            return () => window.removeEventListener('resize', handleResize);
+        }, [breakpoint]);
+
+        return isMobile;
+    }
+
+    const isMobile = useIsMobile();
+
+    const location = useLocation();
 
     useEffect(() => {
         // Listen for dark mode changes dynamically
@@ -103,33 +129,34 @@ const Auth : React.FC = () => {
 
     return (
         <IonPage>
-            <IonHeader style={{ paddingTop : "1.5px" }}>
-                <IonToolbar style={{ maxWidth, margin: "0 auto", "--background": isDarkMode ? "#121212" : "#fff" }}>
-                    <IonButtons slot="start">
-                        <IonButton routerLink="/" fill="clear" style={{"--color-hover": "#4ad493"}}>
-                            {/*<IonTitle>LOGO</IonTitle>*/}
-                            <img src="/logo-placeholder.png" alt="Logo" style={{ height: "40px" }} />
-                        </IonButton>
-                    </IonButtons>
-                    <IonButtons slot="primary" style={{ display: "flex", gap: "15px" }}>
-                        <IonButton routerLink="/" style={{"--color-hover": "#4ad493"}}>
-                            Parked
-                        </IonButton>
-                        <IonButton routerLink="/" style={{"--color-hover": "#4ad493"}}>
-                            Recommendations
-                        </IonButton>
-                        <IonButton routerLink="/sell-car" style={{"--color-hover": "#4ad493"}}>
-                            Sell a Car
-                        </IonButton>
-                        <IonButton routerLink="/auth" style={{ backgroundColor: "#4ad493", color: "#121212", borderRadius: "50px"}}>
-                            <IonIcon slot="icon-only" icon={personOutline}></IonIcon>
-                        </IonButton>
-                    </IonButtons>
-                </IonToolbar>
-            </IonHeader>
+            {!isMobile && (
+                <IonHeader style={{ paddingTop : "1.5px" }}>
+                    <IonToolbar style={{ maxWidth, margin: "0 auto", "--background": isDarkMode ? "#121212" : "#fff" }}>
+                        <IonButtons slot="start">
+                            <IonButton routerLink="/" fill="clear" style={{"--color-hover": "#4ad493"}}>
+                                {/*<IonTitle>LOGO</IonTitle>*/}
+                                <img src="/logo-placeholder.png" alt="Logo" style={{ height: "40px" }} />
+                            </IonButton>
+                        </IonButtons>
+                        <IonButtons slot="primary" style={{ display: "flex", gap: "15px" }}>
+                            <IonButton routerLink="/car-favorites" style={{"--color-hover": "#4ad493"}}>
+                                Parked
+                            </IonButton>
+                            <IonButton routerLink="/car-recommendations" style={{"--color-hover": "#4ad493"}}>
+                                Recommendations
+                            </IonButton>
+                            <IonButton routerLink="/sell-car" style={{"--color-hover": "#4ad493"}}>
+                                Sell a Car
+                            </IonButton>
+                            <IonButton routerLink="/auth" style={{ backgroundColor: "#4ad493", color: "#121212", borderRadius: "50px"}}>
+                                <IonIcon slot="icon-only" icon={personOutline}></IonIcon>
+                            </IonButton>
+                        </IonButtons>
+                    </IonToolbar>
+                </IonHeader>
+            )}
 
-
-            <IonContent >
+            <IonContent  fullscreen>
                 <div style={{ maxWidth, margin: "0 auto", padding: "10px"}}>
                     <IonGrid className={ isDarkMode ? "auth-grid-dark" : "auth-grid-light"}>
                         <IonRow>
@@ -218,6 +245,66 @@ const Auth : React.FC = () => {
                     </IonGrid>
                 </div>
             </IonContent>
+
+            {isMobile && (
+                <IonFooter className="ion-hide-md-up">
+                    <IonToolbar
+                        style={{
+                            '--background': 'var(--ion-background-color)',
+                            paddingBottom: 'env(safe-area-inset-bottom)',
+                        }}
+                    >
+                        <IonButtons
+                            slot="start"
+                            style={{
+                                width: '100%',
+                                justifyContent: 'space-around',
+                            }}
+                        >
+                            {[
+                                { href: '/home', icon: homeOutline, label: 'Home' },
+                                { href: '/car-favorites', icon: carSportOutline, label: 'Parked' },
+                                { href: '/car-recommendations', icon: sparklesOutline, label: 'AI' },
+                                { href: '/sell-car', icon: cashOutline, label: 'Sell' },
+                                { href: '/auth', icon: personOutline, label: 'Account' },
+                            ].map(({ href, icon, label }) => {
+                                const isActive = location.pathname === href;
+                                return (
+                                    <IonButton
+                                        key={href}
+                                        fill="clear"
+                                        routerLink={href}
+                                        style={{
+                                            minWidth: '50px',
+                                            color: isActive ? '#4ad493' : 'var(--ion-color-medium)',
+                                        }}
+                                    >
+                                        <div
+                                            style={{
+                                                display: 'flex',
+                                                flexDirection: 'column',
+                                                alignItems: 'center',
+                                            }}
+                                        >
+                                            <IonIcon icon={icon} />
+                                            <span
+                                                style={{
+                                                    fontSize: '0.7rem',
+                                                    marginTop: '2px',
+                                                    lineHeight: 1,
+                                                    color: 'inherit',
+                                                }}
+                                            >
+                                            {label}
+                                            </span>
+                                        </div>
+                                    </IonButton>
+                                );
+                            })}
+                        </IonButtons>
+                    </IonToolbar>
+                </IonFooter>
+            )}
         </IonPage>
     );
 };

@@ -26,7 +26,17 @@ import {
     IonListHeader,
     IonThumbnail,
     IonTitle,
-    IonNote
+    IonNote,
+    IonCheckbox,
+    IonRadio,
+    IonSpinner,
+    IonAccordion,
+    IonBackButton,
+    IonSelect,
+    IonToggle,
+    IonTabBar,
+    IonTabButton, IonRouterOutlet,
+    IonTabs, IonFooter
 } from "@ionic/react"
 import {
     carSportOutline,
@@ -38,7 +48,9 @@ import {
     notificationsOutline,
     personOutline,
 } from "ionicons/icons"
+import { cashOutline, homeOutline, sparklesOutline} from 'ionicons/icons';
 import { useHistory } from "react-router-dom"
+import {Redirect, Route, useLocation} from "react-router-dom";
 //import "./UserDashboard.css"
 
 const Dashboard: React.FC = () => {
@@ -49,105 +61,89 @@ const Dashboard: React.FC = () => {
     const [activeSidebarItem, setActiveSidebarItem] = useState("dashboard")
     const history = useHistory()
 
-    // Example auction and bid data - in a real app, this would come from an API
-    const activeAuctions = [
-        {
-            id: 1,
-            car: "BMW 5 Series",
-            currentBid: "€45,000",
-            bidders: 8,
-            timeLeft: "23h 45m",
-            image: "/car1.jpg",
-        },
-    ]
+    const [userAuctions, setUserAuctions] = useState<AuctionPreview[]>([]);
+    const [userBids, setUserBids] = useState<AuctionPreview[]>([]);
 
-    const pastAuctions = [
-        {
-            id: 2,
-            car: "Audi A6",
-            finalPrice: "€42,000",
-            status: "sold",
-            endedDaysAgo: 2,
-            image: "/car2.jpg",
-        },
-        {
-            id: 3,
-            car: "Ford Mustang",
-            status: "expired",
-            endedDaysAgo: 3,
-            image: "/car5.jpg",
-        },
-    ]
+    useEffect(() => {
+        const token = localStorage.getItem("token");
+        if (!userId || !token) return;
 
-    const activeBids = [
-        {
-            id: 4,
-            car: "Ferrari 812",
-            yourBid: "€90,000",
-            status: "leading",
-            bidTime: "2h ago",
-            image: "/car7.jpg",
-        },
-        {
-            id: 5,
-            car: "Audi A6",
-            yourBid: "€42,000",
-            status: "outbid",
-            bidTime: "5h ago",
-            image: "/car2.jpg",
-        },
-    ]
+        const fetchData = async () => {
+            try {
+                const [auctionsRes, bidsRes] = await Promise.all([
+                    fetch(`http://localhost:5000/api/auctions/user-auctions/${userId}`, ),
+                    fetch(`http://localhost:5000/api/auctions/user-bids/${userId}`, ),
+                ]);
 
-    const pastBids = [
-        {
-            id: 6,
-            car: "BMW M4",
-            yourBid: "€60,000",
-            finalStatus: "lost",
-            image: "/car8.jpg",
-        },
-        {
-            id: 7,
-            car: "Tesla Model Y",
-            yourBid: "€52,000",
-            finalStatus: "won",
-            image: "/car4.jpg",
-        },
-    ]
+                if (auctionsRes.ok && bidsRes.ok) {
+                    const auctions = await auctionsRes.json();
+                    const bids = await bidsRes.json();
+                    setUserAuctions(auctions);
+                    setUserBids(bids);
+                } else {
+                    console.error("Failed to fetch user auctions or bids");
+                }
+            } catch (err) {
+                console.error(err);
+            }
+        };
 
-    const messages = [
-        {
-            id: 1,
-            sender: "SellerMike",
-            avatar: "/placeholder.svg?height=40&width=40",
-            message: "Still interested in the BMW?",
-            time: "2h ago",
-            isNew: true,
-        },
-        {
-            id: 2,
-            sender: "AutoQueen",
-            avatar: "/placeholder.svg?height=40&width=40",
-            message: "Let's finalize the deal!",
-            time: "Yesterday",
-            isNew: false,
-        },
-    ]
+        fetchData();
+    }, [userId]);
 
-    const notifications = [
-        {
-            id: 1,
-            title: "New bid on your BMW",
-            message: "Someone placed a bid of €46,000",
-            time: "10m ago",
-        },
-        {
-            id: 2,
-            title: "Auction ending soon",
-            message: "Your Ferrari 812 auction ends in 2 hours",
-            time: "1h ago",
-        },
-    ]
+    const now = new Date();
+    const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+
+    const activeUserAuctions = userAuctions.filter(a =>
+        a.startTime && new Date(a.startTime) >= sevenDaysAgo
+    );
+
+    const pastUserAuctions = userAuctions.filter(a =>
+        a.startTime && new Date(a.startTime) < sevenDaysAgo
+    );
+
+    const activeUserBids = userBids.filter(b =>
+        b.startTime && new Date(b.startTime) >= sevenDaysAgo
+    );
+
+    const pastUserBids = userBids.filter(b =>
+        b.startTime && new Date(b.startTime) < sevenDaysAgo
+    );
+
+
+    function useIsMobile(breakpoint = 550) {
+        const [isMobile, setIsMobile] = useState(window.innerWidth < breakpoint);
+
+        useEffect(() => {
+            const handleResize = () => setIsMobile(window.innerWidth < breakpoint);
+            window.addEventListener('resize', handleResize);
+            return () => window.removeEventListener('resize', handleResize);
+        }, [breakpoint]);
+
+        return isMobile;
+    }
+
+    const isMobile = useIsMobile();
+
+    const location = useLocation();
+
+    const accountHref = userId ? "/dashboard" : "/auth";
+
+    interface AuctionPreview {
+        id: number;
+        title?: string;
+        make?: string;
+        model?: string;
+        location?: string;
+        year?: number;
+        mileage?: number;
+        currentBid?: number;
+        startTime?: string; // ISO date
+        imageUrl?: string;
+        isFavorite?: boolean;
+        ownerUserName?: string;
+        ownerPfp?: string;
+    }
 
     const [profilePictureUrl, setProfilePictureUrl] = useState<string | null>(null)
 
@@ -184,8 +180,6 @@ const Dashboard: React.FC = () => {
         } catch (err) {
             console.log(token);
             console.error("Error uploading image", err);
-            // localStorage.clear();
-            // window.location.href = "/auth";
         }
     }
 
@@ -195,7 +189,6 @@ const Dashboard: React.FC = () => {
             setProfilePictureUrl(`http://localhost:5000${pathFromDb}`);
         }
     }, []);
-
 
 
     useEffect(() => {
@@ -230,161 +223,173 @@ const Dashboard: React.FC = () => {
         return () => window.removeEventListener("resize", updateMaxWidth)
     }, [])
 
-    const navigateTo = (route: string) => {
-        history.push(route)
-    }
-
-    const getStatusColor = (status: string) => {
-        switch (status.toLowerCase()) {
-            case "sold":
-            case "leading":
-            case "won":
-                return "success"
-            case "outbid":
-            case "expired":
-            case "lost":
-                return "danger"
-            default:
-                return "medium"
-        }
-    }
 
     return (
         <IonPage>
-            <IonHeader>
-                <IonToolbar style={{ maxWidth, margin: "0 auto", "--background": isDarkMode ? "#121212" : "#fff" as any }}>
-                    <IonButtons slot="start">
-                        <IonButton routerLink="/" fill="clear" style={{"--color-hover": "#4ad493" as any}}>
-                            <IonImg src="/logo-placeholder.png" alt="Logo" style={{ height: "40px" }} />
-                        </IonButton>
-                    </IonButtons>
-                    <IonButtons slot="primary" style={{ display: "flex", gap: "15px" }}>
-                        <IonButton routerLink="/" style={{"--color-hover": "#4ad493" as any}}>
-                            Parked
-                        </IonButton>
-                        <IonButton routerLink="/" style={{"--color-hover": "#4ad493" as any}}>
-                            Recommendations
-                        </IonButton>
-                        <IonButton routerLink="/sell-car" style={{"--color-hover": "#4ad493" as any}}>
-                            Sell a Car
-                        </IonButton>
-                        <IonButton routerLink="/auth" style={{ backgroundColor: "#4ad493", color: "#121212", borderRadius: "50px"}}>
-                            <IonIcon slot="icon-only" icon={personOutline}></IonIcon>
-                        </IonButton>
-                    </IonButtons>
-                </IonToolbar>
-            </IonHeader>
+            {!isMobile && (
+                <IonHeader style={{ paddingTop : "1.5px" }}>
+                    <IonToolbar style={{ maxWidth, margin: "0 auto", "--background": isDarkMode ? "#121212" : "#fff" }}>
+                        <IonButtons slot="start">
+                            <IonButton routerLink="/" fill="clear" style={{"--color-hover": "#4ad493"}}>
+                                {/*<IonTitle>LOGO</IonTitle>*/}
+                                <img src="/logo-placeholder.png" alt="Logo" style={{ height: "40px" }} />
+                            </IonButton>
+                        </IonButtons>
+                        <IonButtons slot="primary" style={{ display: "flex", gap: "15px" }}>
+                            <IonButton routerLink="/car-favorites" style={{"--color-hover": "#4ad493"}}>
+                                Parked
+                            </IonButton>
+                            <IonButton routerLink="/car-recommendations" style={{"--color-hover": "#4ad493"}}>
+                                Recommendations
+                            </IonButton>
+                            <IonButton routerLink="/sell-car" style={{"--color-hover": "#4ad493"}}>
+                                Sell a Car
+                            </IonButton>
+                            <IonButton routerLink="/auth" style={{ backgroundColor: "#4ad493", color: "#121212", borderRadius: "50px"}}>
+                                <IonIcon slot="icon-only" icon={personOutline}></IonIcon>
+                            </IonButton>
+                        </IonButtons>
+                    </IonToolbar>
+                </IonHeader>
+            )}
 
             <IonContent fullscreen>
                 <div style={{ maxWidth, margin: "0 auto" }}>
                     {/* Welcome Card */}
-                    <IonCard style={{display:"flex",marginTop:"20px", marginBottom: "20px", padding: "20px", alignItems: "center", borderRadius: "8px" }}>
-                        {/*<IonCard style={{ display: "flex", alignItems: "center", padding: "20px" }}>*/}
-                            <IonAvatar style={{ width: "80px", height: "80px", marginRight: "20px" }}>
+                    <IonCard
+                        style={{
+                            display: "flex",
+                            flexDirection: isMobile ? "column" : "row",
+                            marginTop: "20px",
+                            marginBottom: "20px",
+                            padding: "20px",
+                            alignItems: isMobile ? "flex-start" : "center",
+                            borderRadius: "8px",
+                            gap: isMobile ? "16px" : "0",
+                        }}
+                    >
+                        <div style={{ display: "flex", flexDirection: "row", width: "100%" }}>
+                            <IonAvatar style={{ width: "80px", height: "80px", marginRight: "2px" }}>
                                 <img src={profilePictureUrl || "/park-icon-green.svg"} alt="Profile" />
-                                {/*alt="Profile"*/}
-                                {/*style={{ width: "100%", height: "100%", objectFit: "cover" }}*/}
                             </IonAvatar>
-                            <div>
 
-                                <IonTitle color="dark" size="large" style={{  fontSize: "28px" }}>Welcome back, {userName}!</IonTitle>
+                            <div style={{ flex: 1 }}>
+                                <IonTitle color="dark" size="large" style={{ fontSize: "24px" }}>
+                                    Welcome back, {userName}!
+                                </IonTitle>
                                 <input
                                     type="file"
                                     accept="image/*"
                                     onChange={handleImageUpload}
-                                    style={{ marginTop: "10px" }}
+                                    style={{ marginTop: "10px", marginLeft: "10px"}}
                                 />
                             </div>
-                            <IonButton color="danger" size="small" onClick={handleLogout} style={{ marginLeft: "auto", color: "#121212" }}>
-                                Logout
-                            </IonButton>
+                        </div>
+
+                        <IonButton
+                            color="danger"
+                            size="small"
+                            onClick={handleLogout}
+                            style={{
+                                width: isMobile ? "100%" : "auto",
+                                marginTop: isMobile ? "12px" : "0",
+                                color: "#121212"
+                            }}
+                        >
+                            Logout
+                        </IonButton>
                     </IonCard>
 
                     <IonGrid>
                         <IonRow>
-                            {/* My Auctions Section */}
-                            <IonCol size="12" sizeMd="6" sizeLg="4">
+                            <IonCol size="12" sizeMd="6">
                                 <IonCard>
                                     <IonCardHeader>
                                         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                                             <IonCardTitle>My Auctions</IonCardTitle>
-                                            <IonButton fill="clear" onClick={() => setActiveSidebarItem("auctions")}>
-                                                View All <IonIcon icon={chevronForwardOutline} />
-                                            </IonButton>
                                         </div>
                                     </IonCardHeader>
                                     <IonCardContent>
-                                        {activeAuctions.length > 0 && (
-                                            <IonList>
-                                                <IonListHeader>
-                                                    <IonLabel>Active Auctions</IonLabel>
-                                                </IonListHeader>
-                                                {activeAuctions.map((auction) => (
-                                                    <IonItem key={auction.id} lines="full" detail={false}>
-                                                        <IonThumbnail slot="start" style={{ position: "relative" }}>
-                                                            <IonImg src={auction.image || "/placeholder.svg"} alt={auction.car} />
-                                                            <IonChip
-                                                                color="primary"
-                                                                style={{
-                                                                    position: "absolute",
-                                                                    bottom: "5px",
-                                                                    left: "50%",
-                                                                    transform: "translateX(-50%)",
-                                                                    fontSize: "10px",
-                                                                    height: "20px"
-                                                                }}
-                                                            >
-                                                                <IonIcon icon={timerOutline} />
-                                                                <IonLabel>{auction.timeLeft}</IonLabel>
-                                                            </IonChip>
-                                                        </IonThumbnail>
-                                                        <IonLabel>
-                                                            <h2>{auction.car}</h2>
-                                                            <IonText color="medium">Current Bid: <IonText color="primary">{auction.currentBid}</IonText></IonText>
-                                                            <p>Bidders: {auction.bidders}</p>
-                                                        </IonLabel>
-                                                    </IonItem>
-                                                ))}
-                                            </IonList>
-                                        )}
-
-                                        {pastAuctions.length > 0 && (
-                                            <IonList>
-                                                <IonListHeader>
-                                                    <IonLabel>Past Auctions</IonLabel>
-                                                </IonListHeader>
-                                                {pastAuctions.map((auction) => (
-                                                    <IonItem key={auction.id} lines="full" detail={false}>
-                                                        <IonThumbnail slot="start" style={{ position: "relative" }}>
-                                                            <IonImg src={auction.image || "/placeholder.svg"} alt={auction.car} />
-                                                        </IonThumbnail>
-                                                        <IonLabel>
-                                                            <h2>{auction.car}</h2>
-                                                            {auction.finalPrice && (
-                                                                <IonText color="medium">Final Price: {auction.finalPrice}</IonText>
+                                        {userAuctions.length > 0 ? (
+                                            <>
+                                                {/* Licitații Active */}
+                                                <IonList>
+                                                    <IonListHeader>
+                                                        <IonLabel>Active Auctions</IonLabel>
+                                                    </IonListHeader>
+                                                    {activeUserAuctions.map((auction) => (
+                                                        <IonItem key={auction.id} lines="full"  button routerLink={`/car-detail/${auction.id}`}>
+                                                            <IonThumbnail slot="start" style={{ position: "relative" }}>
+                                                                <IonImg src={`http://localhost:5000${auction.imageUrl}`} />
+                                                                <IonChip
+                                                                    color="primary"
+                                                                    style={{
+                                                                        position: "absolute",
+                                                                        bottom: "5px",
+                                                                        left: "50%",
+                                                                        transform: "translateX(-50%)",
+                                                                        fontSize: "10px",
+                                                                        height: "20px",
+                                                                    }}
+                                                                >
+                                                                </IonChip>
+                                                            </IonThumbnail>
+                                                            <IonLabel>
+                                                                <h2>{auction.make} {auction.model}</h2>
+                                                                <IonText color="medium">
+                                                                    Year: {auction.year} • Mileage: {auction.mileage} km
+                                                                </IonText>
+                                                                <p>
+                                                                    <IonText style={{'color': "#4ad493"}}>Current Bid: €{auction.currentBid}</IonText>
+                                                                </p>
+                                                            </IonLabel>
+                                                            {auction.isFavorite && (
+                                                                <IonBadge color="warning" slot="end">★ Favorite</IonBadge>
                                                             )}
-                                                            <p>Ended: {auction.endedDaysAgo} days ago</p>
-                                                        </IonLabel>
-                                                        <IonBadge
-                                                            color={auction.status === "sold" ? "success" : "medium"}
-                                                            slot="end"
-                                                        >
-                                                            {auction.status === "sold" ? "Sold" : "Expired"}
-                                                        </IonBadge>
-                                                    </IonItem>
-                                                ))}
-                                            </IonList>
-                                        )}
+                                                        </IonItem>
+                                                    ))}
+                                                </IonList>
 
-                                        {activeAuctions.length === 0 && pastAuctions.length === 0 && (
+                                                {/* Licitații Inactive */}
+                                                <IonList>
+                                                    <IonListHeader>
+                                                        <IonLabel>Inactive Auctions</IonLabel>
+                                                    </IonListHeader>
+                                                    {pastUserAuctions.map((auction) => (
+                                                        <IonItem key={auction.id} lines="full"  button routerLink={`/car-detail/${auction.id}`}>
+                                                            <IonThumbnail slot="start" style={{ position: "relative" }}>
+                                                                <IonImg src={`http://localhost:5000${auction.imageUrl}`} />
+                                                                <IonChip
+                                                                    color="medium"
+                                                                    style={{
+                                                                        position: "absolute",
+                                                                        bottom: "5px",
+                                                                        left: "50%",
+                                                                        transform: "translateX(-50%)",
+                                                                        fontSize: "10px",
+                                                                        height: "20px",
+                                                                    }}
+                                                                >
+                                                                </IonChip>
+                                                            </IonThumbnail>
+                                                            <IonLabel>
+                                                                <h2>{auction.make} {auction.model}</h2>
+                                                                <IonText color="medium">
+                                                                    Year: {auction.year} • Mileage: {auction.mileage} km
+                                                                </IonText>
+                                                                <p>
+                                                                    <IonText style={{'color': "#4ad493"}}>Current Bid: €{auction.currentBid}</IonText>
+                                                                </p>
+                                                            </IonLabel>
+                                                        </IonItem>
+                                                    ))}
+                                                </IonList>
+                                            </>
+                                        ) : (
                                             <div style={{ textAlign: "center", padding: "20px" }}>
                                                 <IonText color="medium">You don't have any auctions yet.</IonText>
                                                 <div style={{ marginTop: "15px" }}>
-                                                    <IonButton
-                                                        fill="solid"
-                                                        style={{ "--background": "#4ad493", "--color": "#121212" } as any}
-                                                        routerLink="/sell-car"
-                                                    >
+                                                    <IonButton routerLink="/sell-car" style={{ "--background": "#4ad493", "--color": "#121212" }}>
                                                         Create Your First Auction
                                                     </IonButton>
                                                 </div>
@@ -394,151 +399,98 @@ const Dashboard: React.FC = () => {
                                 </IonCard>
                             </IonCol>
 
-                            {/* My Bids Section */}
-                            <IonCol size="12" sizeMd="6" sizeLg="4">
+                            {/* My Bids */}
+                            <IonCol size="12" sizeMd="6">
                                 <IonCard>
                                     <IonCardHeader>
                                         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                                             <IonCardTitle>My Bids</IonCardTitle>
-                                            <IonButton fill="clear" onClick={() => setActiveSidebarItem("bids")}>
-                                                View All <IonIcon icon={chevronForwardOutline} />
-                                            </IonButton>
                                         </div>
                                     </IonCardHeader>
                                     <IonCardContent>
-                                        {activeBids.length > 0 && (
-                                            <IonList>
-                                                <IonListHeader>
-                                                    <IonLabel>Active Bids</IonLabel>
-                                                </IonListHeader>
-                                                {activeBids.map((bid) => (
-                                                    <IonItem key={bid.id} lines="full" detail={false}>
-                                                        <IonThumbnail slot="start">
-                                                            <IonImg src={bid.image || "/placeholder.svg"} alt={bid.car} />
-                                                        </IonThumbnail>
-                                                        <IonLabel>
-                                                            <h2>{bid.car}</h2>
-                                                            <IonText color="medium">Your Bid: {bid.yourBid}</IonText>
-                                                            <p>Bid time: {bid.bidTime}</p>
-                                                        </IonLabel>
-                                                        <IonBadge slot="end" color={getStatusColor(bid.status)}>
-                                                            {bid.status.charAt(0).toUpperCase() + bid.status.slice(1)}
-                                                        </IonBadge>
-                                                    </IonItem>
-                                                ))}
-                                            </IonList>
-                                        )}
+                                        {userBids.length > 0 ? (
+                                            <>
+                                                {/* Licitații active */}
+                                                <IonList>
+                                                    <IonListHeader>
+                                                        <IonLabel>Active Auctions</IonLabel>
+                                                    </IonListHeader>
+                                                    {activeUserBids.map((bid) => (
+                                                        <IonItem key={bid.id} lines="full"  button routerLink={`/car-detail/${bid.id}`}>
+                                                            <IonThumbnail slot="start" style={{ position: "relative" }}>
+                                                                <IonImg src={`http://localhost:5000${bid.imageUrl}`} />
+                                                                <IonChip
+                                                                    color="medium"
+                                                                    style={{
+                                                                        position: "absolute",
+                                                                        bottom: "5px",
+                                                                        left: "50%",
+                                                                        transform: "translateX(-50%)",
+                                                                        fontSize: "10px",
+                                                                        height: "20px",
+                                                                    }}
+                                                                >
+                                                                </IonChip>
+                                                            </IonThumbnail>
 
-                                        {pastBids.length > 0 && (
-                                            <IonList>
-                                                <IonListHeader>
-                                                    <IonLabel>Past Bids</IonLabel>
-                                                </IonListHeader>
-                                                {pastBids.map((bid) => (
-                                                    <IonItem key={bid.id} lines="full" detail={false}>
-                                                        <IonThumbnail slot="start">
-                                                            <IonImg src={bid.image || "/placeholder.svg"} alt={bid.car} />
-                                                        </IonThumbnail>
-                                                        <IonLabel>
-                                                            <h2>{bid.car}</h2>
-                                                            <IonText color="medium">Your Bid: {bid.yourBid}</IonText>
-                                                        </IonLabel>
-                                                        <IonBadge slot="end" color={getStatusColor(bid.finalStatus)}>
-                                                            {bid.finalStatus.charAt(0).toUpperCase() + bid.finalStatus.slice(1)}
-                                                        </IonBadge>
-                                                    </IonItem>
-                                                ))}
-                                            </IonList>
-                                        )}
+                                                            <IonLabel>
+                                                                <h2>{bid.make} {bid.model}</h2>
+                                                                <IonText color="medium">
+                                                                    Year: {bid.year} • Mileage: {bid.mileage} km
+                                                                </IonText>
+                                                                <p>
+                                                                    <IonText style={{'color': "#4ad493"}}>Current Bid: €{bid.currentBid}</IonText>
+                                                                </p>
+                                                                <IonNote>Seller: {bid.ownerUserName}</IonNote>
+                                                            </IonLabel>
+                                                        </IonItem>
+                                                    ))}
+                                                </IonList>
 
-                                        {activeBids.length === 0 && pastBids.length === 0 && (
+                                                {/* Licitații inactive */}
+                                                <IonList>
+                                                    <IonListHeader>
+                                                        <IonLabel>Past Auctions</IonLabel>
+                                                    </IonListHeader>
+                                                    {pastUserBids.map((bid) => (
+                                                        <IonItem key={bid.id} lines="full"  button routerLink={`/car-detail/${bid.id}`}>
+                                                            <IonThumbnail slot="start" style={{ position: "relative" }}>
+                                                                <IonImg src={`http://localhost:5000${bid.imageUrl}`} />
+                                                                <IonChip
+                                                                    color="medium"
+                                                                    style={{
+                                                                        position: "absolute",
+                                                                        bottom: "5px",
+                                                                        left: "50%",
+                                                                        transform: "translateX(-50%)",
+                                                                        fontSize: "10px",
+                                                                        height: "20px",
+                                                                    }}
+                                                                >
+                                                                </IonChip>
+                                                            </IonThumbnail>
+                                                            <IonLabel>
+                                                                <h2>{bid.make} {bid.model}</h2>
+                                                                <IonText color="medium">
+                                                                    Year: {bid.year} • Mileage: {bid.mileage} km
+                                                                </IonText>
+                                                                <p>
+                                                                    <IonText style={{'color': "#4ad493"}}>Current Bid: €{bid.currentBid}</IonText>
+                                                                </p>
+                                                                <IonNote>Seller: {bid.ownerUserName}</IonNote>
+                                                            </IonLabel>
+                                                        </IonItem>
+                                                    ))}
+                                                </IonList>
+                                            </>
+                                        ) : (
                                             <div style={{ textAlign: "center", padding: "20px" }}>
                                                 <IonText color="medium">You haven't placed any bids yet.</IonText>
                                                 <div style={{ marginTop: "15px" }}>
-                                                    <IonButton
-                                                        fill="solid"
-                                                        style={{ "--background": "#4ad493", "--color": "#121212" } as any}
-                                                        routerLink="/car-search"
-                                                    >
+                                                    <IonButton routerLink="/car-search" style={{ "--background": "#4ad493", "--color": "#121212" }}>
                                                         Find Cars to Bid On
                                                     </IonButton>
                                                 </div>
-                                            </div>
-                                        )}
-                                    </IonCardContent>
-                                </IonCard>
-                            </IonCol>
-
-                            {/* Messages & Notifications Section */}
-                            <IonCol size="12" sizeMd="6" sizeLg="4">
-                                <IonCard style={{ marginBottom: "20px" }}>
-                                    <IonCardHeader>
-                                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                                            <IonCardTitle>Messages</IonCardTitle>
-                                            <IonButton fill="clear" onClick={() => setActiveSidebarItem("messages")}>
-                                                View All <IonIcon icon={chevronForwardOutline} />
-                                            </IonButton>
-                                        </div>
-                                    </IonCardHeader>
-                                    <IonCardContent>
-                                        {messages.length > 0 ? (
-                                            <IonList>
-                                                {messages.map((message) => (
-                                                    <IonItem key={message.id} lines="full" detail={false}>
-                                                        <div style={{ position: 'relative' }} slot="start">
-                                                            <IonAvatar>
-                                                                <IonImg src={message.avatar || "/placeholder.svg"} alt={message.sender} />
-                                                            </IonAvatar>
-                                                            {message.isNew && (
-                                                                <div style={{
-                                                                    position: 'absolute',
-                                                                    top: '0',
-                                                                    right: '0',
-                                                                    width: '10px',
-                                                                    height: '10px',
-                                                                    backgroundColor: '#4ad493',
-                                                                    borderRadius: '50%'
-                                                                }}></div>
-                                                            )}
-                                                        </div>
-                                                        <IonLabel>
-                                                            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                                                <h2>{message.sender}</h2>
-                                                                <IonNote>{message.time}</IonNote>
-                                                            </div>
-                                                            <p>{message.message}</p>
-                                                        </IonLabel>
-                                                    </IonItem>
-                                                ))}
-                                            </IonList>
-                                        ) : (
-                                            <div style={{ textAlign: "center", padding: "20px" }}>
-                                                <IonText color="medium">No messages yet.</IonText>
-                                            </div>
-                                        )}
-                                    </IonCardContent>
-                                </IonCard>
-
-                                <IonCard>
-                                    <IonCardHeader>
-                                        <IonCardTitle>Recent Notifications</IonCardTitle>
-                                    </IonCardHeader>
-                                    <IonCardContent>
-                                        {notifications.length > 0 ? (
-                                            <IonList>
-                                                {notifications.map((notification) => (
-                                                    <IonItem key={notification.id} lines="full" detail={false}>
-                                                        <IonLabel>
-                                                            <h2>{notification.title}</h2>
-                                                            <p>{notification.message}</p>
-                                                            <IonNote>{notification.time}</IonNote>
-                                                        </IonLabel>
-                                                    </IonItem>
-                                                ))}
-                                            </IonList>
-                                        ) : (
-                                            <div style={{ textAlign: "center", padding: "20px" }}>
-                                                <IonText color="medium">No notifications.</IonText>
                                             </div>
                                         )}
                                     </IonCardContent>
@@ -548,6 +500,66 @@ const Dashboard: React.FC = () => {
                     </IonGrid>
                 </div>
             </IonContent>
+
+            {isMobile && (
+                <IonFooter className="ion-hide-md-up">
+                    <IonToolbar
+                        style={{
+                            '--background': 'var(--ion-background-color)',
+                            paddingBottom: 'env(safe-area-inset-bottom)',
+                        }}
+                    >
+                        <IonButtons
+                            slot="start"
+                            style={{
+                                width: '100%',
+                                justifyContent: 'space-around',
+                            }}
+                        >
+                            {[
+                                { href: '/home', icon: homeOutline, label: 'Home' },
+                                { href: '/car-favorites', icon: carSportOutline, label: 'Parked' },
+                                { href: '/car-recommendations', icon: sparklesOutline, label: 'AI' },
+                                { href: '/sell-car', icon: cashOutline, label: 'Sell' },
+                                { href: accountHref, icon: personOutline, label: 'Account' },
+                            ].map(({ href, icon, label }) => {
+                                const isActive = location.pathname === href;
+                                return (
+                                    <IonButton
+                                        key={href}
+                                        fill="clear"
+                                        routerLink={href}
+                                        style={{
+                                            minWidth: '50px',
+                                            color: isActive ? '#4ad493' : 'var(--ion-color-medium)',
+                                        }}
+                                    >
+                                        <div
+                                            style={{
+                                                display: 'flex',
+                                                flexDirection: 'column',
+                                                alignItems: 'center',
+                                            }}
+                                        >
+                                            <IonIcon icon={icon} />
+                                            <span
+                                                style={{
+                                                    fontSize: '0.7rem',
+                                                    marginTop: '2px',
+                                                    lineHeight: 1,
+                                                    color: 'inherit',
+                                                }}
+                                            >
+                                            {label}
+                                            </span>
+                                        </div>
+                                    </IonButton>
+                                );
+                            })}
+                        </IonButtons>
+                    </IonToolbar>
+                </IonFooter>
+            )}
         </IonPage>
     )
 }

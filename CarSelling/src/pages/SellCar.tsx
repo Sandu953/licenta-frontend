@@ -22,12 +22,22 @@ import {
     IonLabel,
     IonItem,
     IonChip,
-    IonToggle, IonText,
+     IonText,
+    IonCheckbox,
+    IonRadio,
+    IonSpinner,
+    IonAccordion,
+    IonBackButton,
+    IonTabBar,
+    IonTabButton, IonRouterOutlet,
+    IonTabs, IonFooter
 } from "@ionic/react"
 import { personOutline, addCircleOutline, closeCircleOutline, cameraOutline } from "ionicons/icons"
 import { useHistory } from "react-router-dom"
+import {carSportOutline, cashOutline, homeOutline, sparklesOutline} from 'ionicons/icons';
 import "./SellCar.css"
 import axios from "axios";
+import {Redirect, Route, useLocation} from "react-router-dom";
 
 const SellCar: React.FC = () => {
     const [maxWidth, setMaxWidth] = useState("1400px")
@@ -44,7 +54,6 @@ const SellCar: React.FC = () => {
     const [inputErrors, setInputErrors] = useState<{ [key: string]: string }>({});
 
 
-
     const [brands, setBrands] = useState<string[]>([]);
     const [models, setModels] = useState<string[]>([]);
     const [engineSizes, setEngineSizes] = useState<string[]>([]);
@@ -52,6 +61,23 @@ const SellCar: React.FC = () => {
     const currentYear = new Date().getFullYear();
     const years = Array.from({ length: currentYear - 1969 }, (_, i) => currentYear - i);
     const [trims, setTrims] = useState<CarSpec[]>([]);
+
+    function useIsMobile(breakpoint = 550) {
+        const [isMobile, setIsMobile] = useState(window.innerWidth < breakpoint);
+
+        useEffect(() => {
+            const handleResize = () => setIsMobile(window.innerWidth < breakpoint);
+            window.addEventListener('resize', handleResize);
+            return () => window.removeEventListener('resize', handleResize);
+        }, [breakpoint]);
+
+        return isMobile;
+    }
+
+    const isMobile = useIsMobile();
+
+    const location = useLocation();
+
 
     interface CarSpec {
         id: number;
@@ -64,7 +90,7 @@ const SellCar: React.FC = () => {
         emissions: string;
     }
 
-    // Form state
+    // Form
     const [carDetails, setCarDetails] = useState({
         brand: "",
         model: "",
@@ -101,7 +127,7 @@ const SellCar: React.FC = () => {
                 })
                 .catch(err => {
                     console.error("VIN validation error:", err);
-                    setVinConflict(true); // be conservative on error
+                    setVinConflict(true);
                 });
         }
     }, [currentStep, carDetails.vin]);
@@ -118,17 +144,13 @@ const SellCar: React.FC = () => {
 
     useEffect(() => {
         const token = localStorage.getItem("token");
-        axios.get(" http://localhost:5000/api/car/getAllBrands", {
-            headers: {
-                Authorization: `Bearer ${token}` // Replace with real auth token
-            }
-        })
+        axios.get(" http://localhost:5000/api/car/getAllBrands",)
             .then(response => setBrands(response.data))
             .catch(error => {
                 console.error("Failed to fetch brands:", error);
                 if (error.response?.status === 401) {
-                    localStorage.clear(); // Clear all saved data
-                    window.location.href = "/auth"; // Redirect to auth page
+                    localStorage.clear();
+                    window.location.href = "/auth";
                 }
             });
     }, []);
@@ -137,20 +159,16 @@ const SellCar: React.FC = () => {
         if (carDetails.brand) {
             const token = localStorage.getItem("token");
             axios
-                .get(`http://localhost:5000/api/car/getAllModels/${carDetails.brand}`, {
-                    headers: {
-                        Authorization: `Bearer ${token}`
-                    }
-                })
+                .get(`http://localhost:5000/api/car/getAllModels/${carDetails.brand}`,)
                 .then(response => {
-                    setModels(response.data); // Adjust if response is wrapped in another field
+                    setModels(response.data);
                 })
                 .catch(error => {
                     console.error("Failed to fetch models:", error);
-                    setModels([]); // Clear previous models on error
+                    setModels([]);
                 });
         } else {
-            setModels([]); // Clear models if no brand selected
+            setModels([]);
         }
     }, [carDetails.brand]);
 
@@ -158,13 +176,9 @@ const SellCar: React.FC = () => {
         if (carDetails.brand && carDetails.model) {
             const token = localStorage.getItem("token");
             axios
-                .get(`http://localhost:5000/api/car/getAllEngineSize/${carDetails.brand}/${carDetails.model}`, {
-                    headers: {
-                        Authorization: `Bearer ${token}`
-                    }
-                })
+                .get(`http://localhost:5000/api/car/getAllEngineSize/${carDetails.brand}/${carDetails.model}`, )
                 .then(response => {
-                    setEngineSizes(response.data); // Adjust based on actual response format
+                    setEngineSizes(response.data);
                 })
                 .catch(error => {
                     console.error("Failed to fetch engine sizes:", error);
@@ -179,13 +193,9 @@ const SellCar: React.FC = () => {
         if (carDetails.brand && carDetails.model && carDetails.engine) {
             const token = localStorage.getItem("token");
             axios
-                .get(`http://localhost:5000/api/car/getAllFuelType/${carDetails.brand}/${carDetails.model}/${carDetails.engine}`, {
-                    headers: {
-                        Authorization: `Bearer ${token}`
-                    }
-                })
+                .get(`http://localhost:5000/api/car/getAllFuelType/${carDetails.brand}/${carDetails.model}/${carDetails.engine}`, )
                 .then(response => {
-                    setFuelTypes(response.data); // assuming it returns something like ["Petrol", "Diesel"]
+                    setFuelTypes(response.data);
                 })
                 .catch(error => {
                     console.error("Failed to fetch fuel types:", error);
@@ -200,11 +210,7 @@ const SellCar: React.FC = () => {
         if (carDetails.brand && carDetails.model && carDetails.engine && carDetails.fuel) {
             const token = localStorage.getItem("token");
             axios
-                .get(`http://localhost:5000/api/car/getAllTrims/${carDetails.brand}/${carDetails.model}/${carDetails.engine}/${carDetails.fuel}`, {
-                    headers: {
-                        Authorization: `Bearer ${token}`
-                    }
-                })
+                .get(`http://localhost:5000/api/car/getAllTrims/${carDetails.brand}/${carDetails.model}/${carDetails.engine}/${carDetails.fuel}`, )
                 .then(response => {
                     setTrims(response.data);
                 })
@@ -258,10 +264,10 @@ const SellCar: React.FC = () => {
     const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files) {
             const files = Array.from(e.target.files);
-            setImageFiles(prev => [...prev, ...files]); // store the actual files
+            setImageFiles(prev => [...prev, ...files]);
 
             const previews = files.map(file => URL.createObjectURL(file));
-            setImages(prev => [...prev, ...previews]); // still use for UI preview
+            setImages(prev => [...prev, ...previews]);
         }
     }
 
@@ -284,7 +290,6 @@ const SellCar: React.FC = () => {
     const handleSubmit = async () => {
         const formData = new FormData();
 
-        // Car details
         formData.append("title", carDetails.title);
         formData.append("vin", carDetails.vin);
         formData.append("brand", carDetails.brand);
@@ -305,7 +310,7 @@ const SellCar: React.FC = () => {
         formData.append("reservePrice", carDetails.reservePrice === "" ? "0" : carDetails.reservePrice);
 
 
-        // Images — fetch raw files from input, not URLs
+        // Images
         imageFiles.forEach((file) => {
             formData.append("images", file); // this will now work
         });
@@ -355,10 +360,9 @@ const SellCar: React.FC = () => {
         const startPrice = parseFloat(carDetails.price);
         const reservePrice = parseFloat(carDetails.reservePrice);
 
-        // Basic: starting price is required
+        // starting price is required
         if (isNaN(startPrice) || startPrice <= 0) return false;
 
-        // If reserve price is filled in, it must be greater than start price
         if (carDetails.reservePrice.trim() !== "") {
             return !isNaN(reservePrice) && reservePrice > startPrice;
         }
@@ -367,35 +371,34 @@ const SellCar: React.FC = () => {
     };
 
 
-
     return (
         <IonPage>
-            <IonHeader style={{ paddingTop: "1.5px" }}>
-                <IonToolbar style={{ maxWidth, margin: "0 auto", "--background": isDarkMode ? "#121212" : "#fff" }}>
-                    <IonButtons slot="start">
-                        <IonButton routerLink="/" fill="clear" style={{ "--color-hover": "#4ad493" }}>
-                            <img src="/logo-placeholder.png" alt="Logo" style={{ height: "40px" }} />
-                        </IonButton>
-                    </IonButtons>
-                    <IonButtons slot="primary" style={{ display: "flex", gap: "15px" }}>
-                        <IonButton routerLink="/" style={{ "--color-hover": "#4ad493" }}>
-                            Parked
-                        </IonButton>
-                        <IonButton routerLink="/" style={{ "--color-hover": "#4ad493" }}>
-                            Recommendations
-                        </IonButton>
-                        <IonButton routerLink="/sell-car" style={{ "--color-hover": "#4ad493" }}>
-                            Sell a Car
-                        </IonButton>
-                        <IonButton
-                            routerLink="/auth"
-                            style={{ backgroundColor: "#4ad493", color: "#121212", borderRadius: "50px" }}
-                        >
-                            <IonIcon slot="icon-only" icon={personOutline}></IonIcon>
-                        </IonButton>
-                    </IonButtons>
-                </IonToolbar>
-            </IonHeader>
+            {!isMobile && (
+                <IonHeader style={{ paddingTop : "1.5px" }}>
+                    <IonToolbar style={{ maxWidth, margin: "0 auto", "--background": isDarkMode ? "#121212" : "#fff" }}>
+                        <IonButtons slot="start">
+                            <IonButton routerLink="/" fill="clear" style={{"--color-hover": "#4ad493"}}>
+                                {/*<IonTitle>LOGO</IonTitle>*/}
+                                <img src="/logo-placeholder.png" alt="Logo" style={{ height: "40px" }} />
+                            </IonButton>
+                        </IonButtons>
+                        <IonButtons slot="primary" style={{ display: "flex", gap: "15px" }}>
+                            <IonButton routerLink="/car-favorites" style={{"--color-hover": "#4ad493"}}>
+                                Parked
+                            </IonButton>
+                            <IonButton routerLink="/car-recommendations" style={{"--color-hover": "#4ad493"}}>
+                                Recommendations
+                            </IonButton>
+                            <IonButton routerLink="/sell-car" style={{"--color-hover": "#4ad493"}}>
+                                Sell a Car
+                            </IonButton>
+                            <IonButton routerLink="/auth" style={{ backgroundColor: "#4ad493", color: "#121212", borderRadius: "50px"}}>
+                                <IonIcon slot="icon-only" icon={personOutline}></IonIcon>
+                            </IonButton>
+                        </IonButtons>
+                    </IonToolbar>
+                </IonHeader>
+            )}
 
             <IonContent fullscreen>
                 <div style={{ maxWidth, margin: "0 auto", padding: "20px" }}>
@@ -696,7 +699,6 @@ const SellCar: React.FC = () => {
                                         accept="image/*"
                                         style={{ display: "none" }}
                                     />
-
                                     <div className="photo-grid">
                                         {images.map((image, index) => (
                                             <div key={index} className="photo-item">
@@ -706,7 +708,6 @@ const SellCar: React.FC = () => {
                                                 </button>
                                             </div>
                                         ))}
-
                                         <div className="add-photo-button" onClick={() => fileInputRef.current?.click()}>
                                             <IonIcon icon={cameraOutline} />
                                             <span>Add Photo</span>
@@ -718,33 +719,6 @@ const SellCar: React.FC = () => {
                                         Please upload at least 4 photos to continue.
                                     </IonText>
                                 )}
-
-                                {/*<h3 style={{ marginTop: "30px" }}>Car Features</h3>*/}
-                                {/*<p>Add key features of your car to make it stand out.</p>*/}
-
-                                {/*<div className="features-container">*/}
-                                {/*    <div className="add-feature">*/}
-                                {/*        <IonInput*/}
-                                {/*            value={newFeature}*/}
-                                {/*            onIonChange={(e) => setNewFeature(e.detail.value || "")}*/}
-                                {/*            placeholder="e.g., Leather Seats"*/}
-                                {/*            style={{ "--highlight-color-focused": "#4ad493" }}*/}
-                                {/*        ></IonInput>*/}
-                                {/*        <IonButton onClick={addFeature} style={{ "--background": "#4ad493" }}>*/}
-                                {/*            <IonIcon slot="icon-only" icon={addCircleOutline}></IonIcon>*/}
-                                {/*        </IonButton>*/}
-                                {/*    </div>*/}
-
-                                {/*    <div className="features-list">*/}
-                                {/*        {features.map((feature, index) => (*/}
-                                {/*            <IonChip key={index} className="feature-chip">*/}
-                                {/*                <IonLabel>{feature}</IonLabel>*/}
-                                {/*                <IonIcon icon={closeCircleOutline} onClick={() => removeFeature(index)} />*/}
-                                {/*            </IonChip>*/}
-                                {/*        ))}*/}
-                                {/*    </div>*/}
-                                {/*</div>*/}
-
                                 <div className="button-container">
                                     <IonButton onClick={prevStep} fill="clear" style={{ "--color": "#4ad493" }}>
                                         Back
@@ -801,29 +775,6 @@ const SellCar: React.FC = () => {
                                                 Reserve price must be greater than starting price
                                             </IonText>
                                         )}
-
-                                {/*    <IonRow>*/}
-                                {/*        <IonCol size="12">*/}
-                                {/*            <IonItem lines="none" className="toggle-item">*/}
-                                {/*                <IonLabel>*/}
-                                {/*                    <h2>Featured Listing</h2>*/}
-                                {/*                    <p>Get more visibility for your auction (additional fee applies)</p>*/}
-                                {/*                </IonLabel>*/}
-                                {/*                <IonToggle slot="end" style={{ "--background-checked": "#4ad493" }}></IonToggle>*/}
-                                {/*            </IonItem>*/}
-                                {/*        </IonCol>*/}
-                                {/*    </IonRow>*/}
-                                {/*    <IonRow>*/}
-                                {/*        <IonCol size="12">*/}
-                                {/*            <IonItem lines="none" className="toggle-item">*/}
-                                {/*                <IonLabel>*/}
-                                {/*                    <h2>Allow Offers</h2>*/}
-                                {/*                    <p>Let buyers make offers outside the auction</p>*/}
-                                {/*                </IonLabel>*/}
-                                {/*                <IonToggle slot="end" checked={true} style={{ "--background-checked": "#4ad493" }}></IonToggle>*/}
-                                {/*            </IonItem>*/}
-                                {/*        </IonCol>*/}
-                                {/*    </IonRow>*/}
                                 </IonGrid>
 
                                 <div className="button-container">
@@ -899,21 +850,6 @@ const SellCar: React.FC = () => {
                                     <p>{carDetails.description || "No description provided."}</p>
                                 </div>
 
-                                {/*<div className="review-section">*/}
-                                {/*    <h3>Features</h3>*/}
-                                {/*    {features.length > 0 ? (*/}
-                                {/*        <div className="features-list review-features">*/}
-                                {/*            {features.map((feature, index) => (*/}
-                                {/*                <IonChip key={index} className="feature-chip">*/}
-                                {/*                    <IonLabel>{feature}</IonLabel>*/}
-                                {/*                </IonChip>*/}
-                                {/*            ))}*/}
-                                {/*        </div>*/}
-                                {/*    ) : (*/}
-                                {/*        <p>No features added.</p>*/}
-                                {/*    )}*/}
-                                {/*</div>*/}
-
                                 <div className="review-section">
                                     <h3>Photos</h3>
                                     {images.length > 0 ? (
@@ -962,6 +898,66 @@ const SellCar: React.FC = () => {
                     )}
                 </div>
             </IonContent>
+
+            {isMobile && (
+                <IonFooter className="ion-hide-md-up">
+                    <IonToolbar
+                        style={{
+                            '--background': 'var(--ion-background-color)',
+                            paddingBottom: 'env(safe-area-inset-bottom)',
+                        }}
+                    >
+                        <IonButtons
+                            slot="start"
+                            style={{
+                                width: '100%',
+                                justifyContent: 'space-around',
+                            }}
+                        >
+                            {[
+                                { href: '/home', icon: homeOutline, label: 'Home' },
+                                { href: '/car-favorites', icon: carSportOutline, label: 'Parked' },
+                                { href: '/car-recommendations', icon: sparklesOutline, label: 'AI' },
+                                { href: '/sell-car', icon: cashOutline, label: 'Sell' },
+                                { href: '/auth', icon: personOutline, label: 'Account' },
+                            ].map(({ href, icon, label }) => {
+                                const isActive = location.pathname === href;
+                                return (
+                                    <IonButton
+                                        key={href}
+                                        fill="clear"
+                                        routerLink={href}
+                                        style={{
+                                            minWidth: '50px',
+                                            color: isActive ? '#4ad493' : 'var(--ion-color-medium)',
+                                        }}
+                                    >
+                                        <div
+                                            style={{
+                                                display: 'flex',
+                                                flexDirection: 'column',
+                                                alignItems: 'center',
+                                            }}
+                                        >
+                                            <IonIcon icon={icon} />
+                                            <span
+                                                style={{
+                                                    fontSize: '0.7rem',
+                                                    marginTop: '2px',
+                                                    lineHeight: 1,
+                                                    color: 'inherit',
+                                                }}
+                                            >
+                                            {label}
+                                            </span>
+                                        </div>
+                                    </IonButton>
+                                );
+                            })}
+                        </IonButtons>
+                    </IonToolbar>
+                </IonFooter>
+            )}
         </IonPage>
     )
 }
